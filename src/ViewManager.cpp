@@ -34,6 +34,7 @@
 #include <KAction>
 #include <KActionCollection>
 #include <KConfigGroup>
+#include <KDebug>
 
 // Konsole
 #include <windowadaptor.h>
@@ -49,6 +50,7 @@
 #include "ViewSplitter.h"
 #include "Profile.h"
 #include "Enumeration.h"
+#include "MultiTerminalDisplayManager.h"
 
 using namespace Konsole;
 
@@ -71,6 +73,8 @@ ViewManager::ViewManager(QObject* parent , KActionCollection* collection)
     _viewSplitter = new ViewSplitter(0);
     KAcceleratorManager::setNoAccel(_viewSplitter);
 
+    _mtdManager = new MultiTerminalDisplayManager;
+    
     // the ViewSplitter class supports both recursive and non-recursive splitting,
     // in non-recursive mode, all containers are inserted into the same top-level splitter
     // widget, and all the divider lines between the containers have the same orientation
@@ -108,6 +112,8 @@ ViewManager::ViewManager(QObject* parent , KActionCollection* collection)
 
 ViewManager::~ViewManager()
 {
+    // TODO: put this somewhere else?
+    delete _mtdManager;
 }
 
 int ViewManager::managerId() const
@@ -228,6 +234,58 @@ void ViewManager::setupActions()
         }
     }
 
+    // TODO: add the & in the strigs for the menu shortcuts to
+
+    // Menu item for the horizontal split of the multi terminal
+    KAction* multiTerminalHorAction = collection->addAction("multi-terminal-hor");
+    multiTerminalHorAction->setText(i18nc("@action:inmenu", "Split horizontally"));
+    connect(multiTerminalHorAction , SIGNAL(triggered()) , this , SLOT(multiTerminalHorizontal()));
+
+    // Menu item for the vertical split of the multi terminal
+    KAction* multiTerminalVerAction = collection->addAction("multi-terminal-ver");
+    multiTerminalVerAction->setText(i18nc("@action:inmenu", "Split vertically"));
+    connect(multiTerminalVerAction , SIGNAL(triggered()) , this , SLOT(multiTerminalVertical()));
+
+    // Menu item for closing a multi terminal
+    // TODO: this must be disabled when no splits
+    KAction* closeMultiTerminalAction = collection->addAction("multi-terminal-close");
+    closeMultiTerminalAction->setText(i18nc("@action:inmenu", "Close Multi Terminal"));
+    closeMultiTerminalAction->setEnabled(false);
+    connect(closeMultiTerminalAction , SIGNAL(triggered()) , this , SLOT(multiTerminalClose()));
+    // This action must be enabled only when there is more than one multi-terminal
+    // TODO: if this is enabled, calling this closes the tab, use this info to fix the problem
+    // of the close tab button that doesn't work
+    connect(this, SIGNAL(closeMultiTerminalToggle(bool)), closeMultiTerminalAction, SLOT(setEnabled(bool)));
+
+    // Shortcut to move to the MTD to the left
+    KAction* goToLeftMtdAction = 0;
+    goToLeftMtdAction = collection->addAction("to-left-mtd", this, SLOT(moveToLeftMtd()));
+    goToLeftMtdAction->setText(i18n("&Move to closest multi-terminal on the left"));
+    // TODO: icon?
+    goToLeftMtdAction->setIcon(KIcon("edit-rename"));
+    goToLeftMtdAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_Left));
+    // Shortcut to move to the MTD above
+    KAction* goToTopMtdAction = 0;
+    goToTopMtdAction = collection->addAction("to-top-mtd", this, SLOT(moveToTopMtd()));
+    goToTopMtdAction->setText(i18n("&Move to closest multi-terminal above"));
+    // TODO: icon?
+    goToTopMtdAction->setIcon(KIcon("edit-rename"));
+    goToTopMtdAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_Up));
+    // Shortcut to move to the MTD to the right
+    KAction* goToRightMtdAction = 0;
+    goToRightMtdAction = collection->addAction("to-right-mtd", this, SLOT(moveToRightMtd()));
+    goToRightMtdAction->setText(i18n("&Move to closest multi-terminal on the right"));
+    // TODO: icon?
+    goToRightMtdAction->setIcon(KIcon("edit-rename"));
+    goToRightMtdAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_Right));
+    // Shortcut to move to the MTD below
+    KAction* goToBottomMtdAction = 0;
+    goToTopMtdAction = collection->addAction("to-bottom-mtd", this, SLOT(moveToBottomMtd()));
+    goToTopMtdAction->setText(i18n("&Move to closest multi-terminal below"));
+    // TODO: icon?
+    goToTopMtdAction->setIcon(KIcon("edit-rename"));
+    goToTopMtdAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_Down));
+    
     foreach(QAction* action, multiViewOnlyActions) {
         connect(this , SIGNAL(splitViewToggle(bool)) , action , SLOT(setEnabled(bool)));
     }
@@ -261,7 +319,7 @@ void ViewManager::switchToView(int index)
     Q_ASSERT(index >= 0);
     ViewContainer* container = _viewSplitter->activeContainer();
     Q_ASSERT(container);
-    QList<QWidget*> containerViews = container->views();
+    QList<QWidget*> containerViews = getTerminalsFromContainer(container);
     if (index >= containerViews.count())
         return;
     container->setActiveView(containerViews.at(index));
@@ -273,7 +331,7 @@ void ViewManager::updateDetachViewState()
 
     const bool splitView = _viewSplitter->containers().count() >= 2;
     const bool shouldEnable = splitView ||
-                              _viewSplitter->activeContainer()->views().count() >= 2;
+                              getTerminalsFromContainer(_viewSplitter->activeContainer()).count() >= 2;
 
     QAction* detachAction = _actionCollection->action("detach-view");
 
@@ -355,13 +413,14 @@ void ViewManager::detachView(ViewContainer* container, QWidget* widgetView)
     // unless it is the only container in the window, in which case it is left empty
     // so that there is always an active container
     if (_viewSplitter->containers().count() > 1 &&
-            container->views().count() == 0) {
+            getTerminalsFromContainer(container).count() == 0) {
         removeContainer(container);
     }
 }
 
 void ViewManager::sessionFinished()
 {
+    kDebug() << "VINCENZO: calling sessionFinished";
     // if this slot is called after the view manager's main widget
     // has been destroyed, do nothing
     if (!_viewSplitter)
@@ -370,6 +429,8 @@ void ViewManager::sessionFinished()
     Session* session = qobject_cast<Session*>(sender());
     Q_ASSERT(session);
 
+    // TODO: all multi terminals must be removed as well
+    
     // close attached views
     QList<TerminalDisplay*> children = _viewSplitter->findChildren<TerminalDisplay*>();
 
@@ -428,16 +489,24 @@ void ViewManager::splitView(Qt::Orientation orientation)
 
     // iterate over each session which has a view in the current active
     // container and create a new view for that session in a new container
-    foreach(QWidget* view,  _viewSplitter->activeContainer()->views()) {
+    // TODO XXX: non va bene: prima era _viewSplitter->activeContainer()->views() che
+    //       per un tab container significava tutte le tabs (1 tab per TerminalDisplay).
+    //       Ora sono i TerminalDisplay in una singola tab.
+    foreach(QWidget* view,  getTerminalsFromContainer(_viewSplitter->activeContainer())) {
         Session* session = _sessionMap[qobject_cast<TerminalDisplay*>(view)];
         TerminalDisplay* display = createTerminalDisplay(session);
+        MultiTerminalDisplay* mtd = _mtdManager->createRootTerminalDisplay(display, session, container);
+        // This element should not be already here, only one MTD per container
+//         Q_ASSERT(_multiTerminalsMap.find(container) == _multiTerminalsMap.end());
+//         _multiTerminalsMap[container] = multiTerminalDisplay;
+        if (session == NULL) {kDebug() << "session was null!"; return;}
         const Profile::Ptr profile = SessionManager::instance()->sessionProfile(session);
         applyProfileToView(display, profile);
         ViewProperties* properties = createController(session, display);
 
         _sessionMap[display] = session;
 
-        container->addView(display, properties);
+        container->addView(mtd, properties);
         session->addView(display);
     }
 
@@ -457,7 +526,7 @@ void ViewManager::splitView(Qt::Orientation orientation)
 void ViewManager::removeContainer(ViewContainer* container)
 {
     // remove session map entries for views in this container
-    foreach(QWidget* view , container->views()) {
+    foreach(QWidget* view , getTerminalsFromContainer(container)) {
         TerminalDisplay* display = qobject_cast<TerminalDisplay*>(view);
         Q_ASSERT(display);
         _sessionMap.remove(display);
@@ -476,6 +545,68 @@ void ViewManager::shrinkActiveContainer()
 {
     _viewSplitter->adjustContainerSize(_viewSplitter->activeContainer(), -10);
 }
+void ViewManager::multiTerminalHorizontal()
+{
+    // This is called from the menu action
+    kDebug() << "ViewManager::multiTerminalHorizontal() ";
+    createMultiTerminalView(Qt::Horizontal);
+}
+void ViewManager::multiTerminalVertical()
+{
+    // This is called from the menu action
+    kDebug() << "ViewManager::multiTerminalVertical() ";
+    createMultiTerminalView(Qt::Vertical);
+}
+
+void ViewManager::multiTerminalClose()
+{
+    // TODO: which one?
+//     MultiTerminalDisplay* containerMtd = _viewSplitter->activeSplitter()->activeContainer()->activeView();
+    MultiTerminalDisplay* containerMtd = qobject_cast<MultiTerminalDisplay*>(_viewSplitter->activeContainer()->activeView());
+
+    // MultiTerminalDisplay with focus
+    MultiTerminalDisplay* mtd = _mtdManager->getFocusedMultiTerminalDisplay(containerMtd);
+    if (_mtdManager->isRootNode(qobject_cast<MultiTerminalDisplay*>(mtd->parent()))) {
+        // We will remove this node and its parent is root, so there will be
+        // a single and last terminal in this view. Disable the multi terminal
+        // close button
+        emit closeMultiTerminalToggle(false);
+    }
+    _mtdManager->removeTerminalDisplay(mtd);
+    //_mtdManager->dismissMultiTerminals(mtd);
+}
+
+void ViewManager::moveToLeftMtd()
+{
+    moveMtdFocus(MultiTerminalDisplayManager::LEFT);
+}
+
+void ViewManager::moveToTopMtd()
+{
+    moveMtdFocus(MultiTerminalDisplayManager::TOP);
+}
+
+void ViewManager::moveToRightMtd()
+{
+    moveMtdFocus(MultiTerminalDisplayManager::RIGHT);
+}
+
+void ViewManager::moveToBottomMtd()
+{
+    moveMtdFocus(MultiTerminalDisplayManager::BOTTOM);
+}
+
+void ViewManager::moveMtdFocus(MultiTerminalDisplayManager::Directions direction)
+{
+    MultiTerminalDisplay* containerMtd = qobject_cast<MultiTerminalDisplay*>(_viewSplitter->activeContainer()->activeView());
+    MultiTerminalDisplay* focusMtd = _mtdManager->getFocusedMultiTerminalDisplay(containerMtd);
+    TerminalDisplay* td = _mtdManager->getTerminalDisplayTo(focusMtd, direction);
+    if (td) {
+        td->setFocus();
+    }
+}
+
+
 void ViewManager::closeActiveContainer()
 {
     // only do something if there is more than one container active
@@ -501,6 +632,7 @@ void ViewManager::closeOtherContainers()
 
 SessionController* ViewManager::createController(Session* session , TerminalDisplay* view)
 {
+    kDebug() << "VINCENZO: createController";
     // create a new controller for the session, and ensure that this view manager
     // is notified when the view gains the focus
     SessionController* controller = new SessionController(session, view, this);
@@ -521,6 +653,7 @@ SessionController* ViewManager::createController(Session* session , TerminalDisp
 
 void ViewManager::controllerChanged(SessionController* controller)
 {
+    kDebug() << "VINCENZO: controllerchanged";
     if (controller == _pluggedController)
         return;
 
@@ -549,6 +682,12 @@ void ViewManager::createView(Session* session, ViewContainer* container, int ind
     connect(session, SIGNAL(finished()), this, SLOT(sessionFinished()), Qt::UniqueConnection);
 
     TerminalDisplay* display = createTerminalDisplay(session);
+
+    MultiTerminalDisplay* multiTerminalDisplay = _mtdManager->createRootTerminalDisplay(display, session, container);
+    // This element should not be already here, only one MTD per container
+//     Q_ASSERT(_multiTerminalsMap.find(container) == _multiTerminalsMap.end());
+//     _multiTerminalsMap[container] = multiTerminalDisplay;
+    
     const Profile::Ptr profile = SessionManager::instance()->sessionProfile(session);
     applyProfileToView(display, profile);
 
@@ -560,14 +699,15 @@ void ViewManager::createView(Session* session, ViewContainer* container, int ind
     ViewProperties* properties = createController(session, display);
 
     _sessionMap[display] = session;
-    container->addView(display, properties, index);
+
+    container->addView(multiTerminalDisplay, properties, index);
     session->addView(display);
 
     // tell the session whether it has a light or dark background
     session->setDarkBackground(colorSchemeForProfile(profile)->hasDarkBackground());
 
     if (container == _viewSplitter->activeContainer()) {
-        container->setActiveView(display);
+        container->setActiveView(multiTerminalDisplay);
         display->setFocus(Qt::OtherFocusReason);
     }
 
@@ -578,6 +718,8 @@ void ViewManager::createView(Session* session)
 {
     // create the default container
     if (_viewSplitter->containers().count() == 0) {
+        // TODO: not happening
+        kDebug() << "void ViewManager::createView, we are creating the default container";
         ViewContainer* container = createContainer();
         _viewSplitter->addContainer(container, Qt::Vertical);
         emit splitViewToggle(false);
@@ -589,7 +731,9 @@ void ViewManager::createView(Session* session)
     if (_newTabBehavior == PutNewTabAfterCurrentTab) {
         QWidget* view = activeView();
         if (view) {
-            QList<QWidget*> views =  _viewSplitter->activeContainer()->views();
+            // TODO: This is wrong, we want a list of all the tabs (views in the stack) to get the index
+            // of the current one and append the tab after this.
+            QList<QWidget*> views =  getTerminalsFromContainer(_viewSplitter->activeContainer());
             index = views.indexOf(view) + 1;
         }
     }
@@ -597,14 +741,223 @@ void ViewManager::createView(Session* session)
     // iterate over the view containers owned by this view manager
     // and create a new terminal display for the session in each of them, along with
     // a controller for the session/display pair
+    // TODO: this means that if a view manager is split into two view containers and a new
+    // tab is created, the tab will go in both views. So the same must happen for multi
+    // terminal
     foreach(ViewContainer* container,  _viewSplitter->containers()) {
         createView(session, container, index);
     }
 }
 
+void ViewManager::createMultiTerminalView(Qt::Orientation orientation)
+{
+    kDebug() << "ViewManager::createMultiTerminalView";
+
+    // TODO: take it from the MTD with focus
+    // TODO: implement shortcut
+    // TODO: implement remove/close
+    QString currentWorkingDir = activeViewController()->currentDir();
+
+    Profile::Ptr defaultProfile = ProfileManager::instance()->defaultProfile();
+
+    Session* session = SessionManager::instance()->createSession(defaultProfile);
+
+    if (!currentWorkingDir.isEmpty() && defaultProfile->startInCurrentSessionDir())
+        session->setInitialWorkingDirectory(currentWorkingDir);
+
+    session->addEnvironmentEntry(QString("KONSOLE_DBUS_WINDOW=/Windows/%1").arg(managerId()));
+
+    connect(session, SIGNAL(finished()), this, SLOT(sessionFinished()), Qt::UniqueConnection);
+
+    TerminalDisplay* display = createTerminalDisplay(session);
+    if (session == NULL) {kDebug() << "session was null!"; return;}
+    const Profile::Ptr profile = SessionManager::instance()->sessionProfile(session);
+    applyProfileToView(display, profile);
+    _sessionMap[display] = session;
+    session->addView(display);
+    MultiTerminalDisplay* containerMtd = qobject_cast<MultiTerminalDisplay*>(_viewSplitter->activeContainer()->activeView());
+    MultiTerminalDisplay* multiTerminalDisplay = _mtdManager->getFocusedMultiTerminalDisplay(containerMtd);
+    _mtdManager->addTerminalDisplay(display, session, multiTerminalDisplay, orientation);
+
+    createController(session, display);
+
+    session->setDarkBackground(colorSchemeForProfile(profile)->hasDarkBackground());
+
+    updateDetachViewState();
+
+    // Enable the close button
+    emit closeMultiTerminalToggle(true);
+
+//     currentContainer->addView(display, properties);
+    // focus the new container
+//     currentContainer->containerWidget()->setFocus();
+    
+    
+
+//     ViewContainer* activeContainer = _viewSplitter->activeContainer();
+//     QWidget* activeView = activeContainer ? activeContainer->activeView() : 0;
+
+//     if (activeView)
+//         activeView->setFocus(Qt::OtherFocusReason);
+    
+    // 1. Get the current container from somewhere!
+    // 2. Split the container and put a string in the split, just for fun
+    
+//     setNavigationMethod(NoNavigation);
+    
+    /*
+    ViewContainer* container = createContainer(); 
+    
+    TerminalDisplay* display = createTerminalDisplay(session);
+    
+    
+    const Profile::Ptr profile = SessionManager::instance()->sessionProfile(session);
+        applyProfileToView(display, profile);
+        ViewProperties* properties = createController(session, display);
+
+        _sessionMap[display] = session;
+
+        container->addView(display, properties);
+        session->addView(display);
+    
+    _viewSplitter->addContainer(container, Qt::Horizontal);
+    emit splitViewToggle(_viewSplitter->containers().count() > 0);
+
+    // focus the new container
+    container->containerWidget()->setFocus();
+
+    // ensure that the active view is focused after the split / unsplit
+    ViewContainer* activeContainer = _viewSplitter->activeContainer();
+    QWidget* activeView = activeContainer ? activeContainer->activeView() : 0;
+
+    if (activeView)
+        activeView->setFocus(Qt::OtherFocusReason);
+    */    
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // iterate over each session which has a view in the current active
+    // container and create a new view for that session in a new container
+//     foreach(QWidget* view,  _viewSplitter->activeContainer()->views()) {
+//         Session* session = _sessionMap[qobject_cast<TerminalDisplay*>(view)];
+//         TerminalDisplay* display = createTerminalDisplay(session);
+//         const Profile::Ptr profile = SessionManager::instance()->sessionProfile(session);
+//         applyProfileToView(display, profile);
+//         ViewProperties* properties = createController(session, display);
+// 
+//         _sessionMap[display] = session;
+// 
+//         container->addView(display, properties);
+//         session->addView(display);
+//     }
+// 
+//     _viewSplitter->addContainer(container, orientation);
+//     emit splitViewToggle(_viewSplitter->containers().count() > 0);
+// 
+//     // focus the new container
+//     container->containerWidget()->setFocus();
+// 
+//     // ensure that the active view is focused after the split / unsplit
+//     ViewContainer* activeContainer = _viewSplitter->activeContainer();
+//     QWidget* activeView = activeContainer ? activeContainer->activeView() : 0;
+// 
+//     if (activeView)
+//         activeView->setFocus(Qt::OtherFocusReason);
+//     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+//     // TODO: tentativo modifica size finestra corrente
+//     int width = activeViewController()->session()->preferredSize().width();
+//     int height = activeViewController()->session()->preferredSize().height();
+//     kDebug() << "Current preferred width: " << width;
+//     kDebug() << "Current preferred height: " << height;
+//     QSize currentSessionSize(width / 2,
+//                              height / 2);
+//     activeViewController()->session()->setSize(currentSessionSize);
+//     updateDetachViewState();
+    
+//     foreach(ViewContainer* container,  _viewSplitter->containers()) {
+//     
+//     
+//     // notify this view manager when the session finishes so that its view
+//     // can be deleted
+//     //
+//     // Use Qt::UniqueConnection to avoid duplicate connection
+//     connect(session, SIGNAL(finished()), this, SLOT(sessionFinished()), Qt::UniqueConnection);
+// 
+//     TerminalDisplay* display = createTerminalDisplay(session);
+//     const Profile::Ptr profile = SessionManager::instance()->sessionProfile(session);
+//     applyProfileToView(display, profile);
+// 
+//     // set initial size
+//     const QSize& preferredSize = session->preferredSize();
+//     // FIXME: +1 is needed here for getting the expected rows
+//     display->setSize(preferredSize.width() / 2, preferredSize.height() + 1);
+// 
+//     ViewProperties* properties = createController(session, display);
+// 
+//     _sessionMap[display] = session;
+//     // TODO: we are using the tabbed view container here!
+//     // We need a different kind of container?
+//     // We actually should not care about the container: just resize the current one and add a view
+//     //
+//     container->addView(display, properties, index);
+//     session->addView(display);
+// 
+//     // tell the session whether it has a light or dark background
+//     session->setDarkBackground(colorSchemeForProfile(profile)->hasDarkBackground());
+// 
+//     if (container == _viewSplitter->activeContainer()) {
+//         container->setActiveView(display);
+//         display->setFocus(Qt::OtherFocusReason);
+//     }
+// 
+//     updateDetachViewState();
+//     
+//     
+//     
+//     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+}
+
 ViewContainer* ViewManager::createContainer()
 {
     ViewContainer* container = 0;
+
+    kDebug() << "VINCENZO: navigationMethod: " << _navigationMethod;
 
     switch (_navigationMethod) {
     case TabbedNavigation: {
@@ -723,6 +1076,9 @@ void ViewManager::setNavigationMethod(NavigationMethod method)
         if (action) action->setEnabled(enable);
 
         action = collection->action("move-view-right");
+        if (action) action->setEnabled(enable);
+        
+        action = collection->action("multi-terminal");
         if (action) action->setEnabled(enable);
     }
 }
@@ -912,7 +1268,7 @@ QList<ViewProperties*> ViewManager::viewProperties() const
 
     Q_ASSERT(container);
 
-    foreach(QWidget* view, container->views()) {
+    foreach(QWidget* view, getTerminalsFromContainer(container)) {
         ViewProperties* properties = container->viewProperties(view);
         Q_ASSERT(properties);
         list << properties;
@@ -932,7 +1288,7 @@ void ViewManager::saveSessions(KConfigGroup& group)
     Q_ASSERT(container);
     TerminalDisplay* activeview = qobject_cast<TerminalDisplay*>(container->activeView());
 
-    QListIterator<QWidget*> viewIter(container->views());
+    QListIterator<QWidget*> viewIter(getTerminalsFromContainer(container));
     int tab = 1;
     while (viewIter.hasNext()) {
         TerminalDisplay* view = qobject_cast<TerminalDisplay*>(viewIter.next());
@@ -1133,6 +1489,19 @@ void ViewManager::setShowQuickButtons(bool show)
 void ViewManager::setNavigationBehavior(int behavior)
 {
     _newTabBehavior = static_cast<NewTabBehavior>(behavior);
+}
+
+QList<QWidget*> ViewManager::getTerminalsFromContainer(ViewContainer *container) const
+{
+    return _mtdManager->getTerminalDisplays();
+
+//     QList<QWidget*> l;
+//     foreach (QWidget* widget, container->views()) {
+//         // Loop over all the root MultiTerminalDisplays in the container (e.g., the tabs)
+//         MultiTerminalDisplay* mtd = qobject_cast<MultiTerminalDisplay*>(widget);
+//         l.append(mtd->getTerminalDisplays());
+//     }
+//     return l;
 }
 
 #include "ViewManager.moc"
