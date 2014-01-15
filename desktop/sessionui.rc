@@ -1,6 +1,6 @@
 <!DOCTYPE kpartgui>
 
-<kpartgui name="session" version="24">
+<kpartgui name="session" version="25">
     <MenuBar>
         <Menu name="file">
             <Action name="file_save_as" group="session-operations"/>
@@ -46,6 +46,11 @@
         <Action name="edit_paste"/>
         <Action name="web-search"/>
         <Action name="open-browser"/>
+        <Separator/>
+        <Menu name="multi-terminal"><text>Multi Terminal</text>
+            <Action name="multi-terminal-hor" group="multi-terminal"/>
+            <Action name="multi-terminal-ver" group="multi-terminal"/>
+        </Menu>
         <Separator/>
         <Action name="set-encoding"/>
         <Action name="clear-history"/>

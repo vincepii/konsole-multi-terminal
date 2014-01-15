@@ -91,6 +91,7 @@ set(konsoleprivate_SRCS ${sessionadaptors_SRCS}
                         KeyboardTranslator.cpp
                         KeyboardTranslatorManager.cpp
                         ManageProfilesDialog.cpp
+                        MultiTerminalDisplayManager.cpp
                         ProcessInfo.cpp
                         Profile.cpp
                         ProfileList.cpp

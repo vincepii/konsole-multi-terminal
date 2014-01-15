@@ -779,6 +779,7 @@ void Session::close()
 
 bool Session::closeInNormalWay()
 {
+    kDebug() << "VINCENZO: close in normal way";
     _autoClose    = true;
     _closePerUserRequest = true;
 
@@ -789,6 +790,7 @@ bool Session::closeInNormalWay()
     // 3). the user closes the tab explicitly
     //
     if (!isRunning()) {
+        kDebug() << "VINCENZO: emitting finished signal";
         emit finished();
         return true;
     }
@@ -804,6 +806,7 @@ bool Session::closeInNormalWay()
 
 bool Session::closeInForceWay()
 {
+    kDebug() << "VINCENZO: close in force way";
     _autoClose    = true;
     _closePerUserRequest = true;
 
@@ -843,6 +846,7 @@ void Session::done(int exitCode, QProcess::ExitStatus exitStatus)
     }
 
     if (_closePerUserRequest) {
+        kDebug() << "VINCENZO: emitting finished signal 2";
         emit finished();
         return;
     }
@@ -866,6 +870,7 @@ void Session::done(int exitCode, QProcess::ExitStatus exitStatus)
         message = i18n("Program '%1' crashed.", _program);
         terminalWarning(message);
     } else {
+        kDebug() << "VINCENZO: emitting finished signal 3";
         emit finished();
     }
 }
