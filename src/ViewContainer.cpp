@@ -567,6 +567,7 @@ void TabbedViewContainer::openTabContextMenu(int index, const QPoint& pos)
 
 void TabbedViewContainer::tabContextMenuCloseTab()
 {
+    // TODO: close also every multiterminal
     _tabBar->setCurrentIndex(_contextMenuTabIndex);// Required for this to work
     emit closeTab(this, _stackWidget->widget(_contextMenuTabIndex));
 }
@@ -592,6 +593,7 @@ void TabbedViewContainer::moveViewWidget(int fromIndex , int toIndex)
     _tabBar->removeTab(fromIndex);
     _tabBar->insertTab(toIndex, icon, text);
 
+    // TODO: something needed here?
     QWidget* widget = _stackWidget->widget(fromIndex);
     _stackWidget->removeWidget(widget);
     _stackWidget->insertWidget(toIndex, widget);

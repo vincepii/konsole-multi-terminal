@@ -19,6 +19,8 @@
     02110-1301  USA.
 */
 
+#include <iostream>
+
 // Own
 #include "ViewSplitter.h"
 
@@ -131,6 +133,7 @@ void ViewSplitter::removeContainer(ViewContainer* container)
 void ViewSplitter::addContainer(ViewContainer* container ,
                                 Qt::Orientation containerOrientation)
 {
+    std::cout << "Vincenzo: addContainer" << std::endl;
     ViewSplitter* splitter = activeSplitter();
 
     if (splitter->count() < 2 ||
