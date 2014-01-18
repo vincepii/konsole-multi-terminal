@@ -22,6 +22,9 @@
 // Own
 #include "MultiTerminalDisplayManager.h"
 
+// Qt
+#include <QEvent>
+
 // KDE
 #include <KDebug>
 #include <KXmlGuiWindow>
@@ -146,6 +149,10 @@ MultiTerminalDisplay* MultiTerminalDisplayTree::getLeafOfSubtree(MultiTerminalDi
     return mtd;
 }
 
+// TODO: implement a stack of focused widgets for each tree
+//  * when a widget is removed, give focus to the one that had it before
+//  * when a different tab is selected, give the focus to the widget that had it
+
 MultiTerminalDisplayManager::MultiTerminalDisplayManager(QObject* parent /* = 0 */) :
     QObject(parent),
     UNSPECIFIED_DISTANCE(-1)
@@ -168,6 +175,9 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::createRootTerminalDisplay(Ter
     // We have to start a new tree
     MultiTerminalDisplayTree* mtdTree = new MultiTerminalDisplayTree(mtd);
     _trees.insert(mtd, mtdTree);
+
+    // We want to know when this object will get focus
+    mtd->installEventFilter(this);
 
     combineMultiTerminalDisplayAndTerminalDisplay(mtd, terminalDisplay);
 
@@ -398,32 +408,36 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::getFocusedMultiTerminalDispla
 
 QList<QWidget*> MultiTerminalDisplayManager::getTerminalDisplays() const
 {
-    // TODO: cont refactoring from this method
+    // Return all the leaves
     QList<QWidget*> l;
-    foreach (QWidget* td, _displays.values()) {
-        l.push_back(td);
+    foreach (MultiTerminalDisplayTree* tree, _trees.values()) {
+        QSet<MultiTerminalDisplay*> leaves = tree->getLeaves();
+        foreach (QWidget* leaf, leaves) {
+            l.push_back(leaf);
+        }
     }
     return l;
 }
 
 TerminalDisplay* MultiTerminalDisplayManager::getTerminalDisplayTo(
     MultiTerminalDisplay* multiTerminalDisplay
-    , MultiTerminalDisplayManager::Directions direction)
+    , MultiTerminalDisplayManager::Directions direction
+    , MultiTerminalDisplay* treeRoot)
 {
-    // TODO: error, if there are multiple tabs, we go to the mtd of another tab...
-    //       we need to separate the trees of mtds.
-    // Assert that this is a leaf node
-    Q_ASSERT(_mtdContent.contains(multiTerminalDisplay));
+    // Get the tree
+    MultiTerminalDisplayTree* tree = _trees[treeRoot];
     // TerminalDisplay contained in the current MultiTerminalDisplay
     TerminalDisplay* currentTerminalDisplay = _mtdContent.value(multiTerminalDisplay);
     // Global coordinates (of the top left corner) of the current TerminalDisplay
     QPoint widgetPos = currentTerminalDisplay->mapToGlobal(currentTerminalDisplay->pos());
     // This will store the TerminalDisplay to which we need to move, if any
     TerminalDisplay* moveToTerminalDisplay = 0;
-    // Loop through each TerminalDisplay and get the one which is closest to
+    // Loop through each TerminalDisplay of the same tree and get the one which is closest to
     // the specified direction, if any
     double minDistance = UNSPECIFIED_DISTANCE;
-    foreach (TerminalDisplay* td, _mtdContent.values()) {
+    QSet<MultiTerminalDisplay*> leaves = tree->getLeaves();
+    foreach (MultiTerminalDisplay* leaf, leaves) {
+        TerminalDisplay* td = _mtdContent[leaf];
         QPoint tdPoint = td->mapToGlobal(td->pos());
         // Coordinates of the current TerminalDisplay
         int x = tdPoint.x();
@@ -483,6 +497,25 @@ void MultiTerminalDisplayManager::dismissMultiTerminals(MultiTerminalDisplay* mu
     }
 }
 
+void MultiTerminalDisplayManager::setFocusForContainer(MultiTerminalDisplay* widget)
+{
+    // TODO: use a stack of focused widgets
+    MultiTerminalDisplayTree* tree = _trees[widget];
+    setFocusToLeaf(widget, tree);
+}
+
+bool MultiTerminalDisplayManager::eventFilter(QObject* obj, QEvent* event)
+{
+    // We install this only on QWidgets
+    MultiTerminalDisplay* mtd = qobject_cast<MultiTerminalDisplay*>(obj);
+
+    if (event->type() == QEvent::FocusIn) {
+        kDebug() << "Konsole::MultiTerminalDisplayManager::eventFilter, focus in!";
+        setFocusForContainer(mtd);
+    }
+
+    return QObject::eventFilter(obj, event);
+}
 
 MultiTerminalDisplay* MultiTerminalDisplayManager::getSiblingOf(MultiTerminalDisplay* multiTerminalDisplay)
 {
