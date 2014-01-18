@@ -221,13 +221,7 @@ public:
     MultiTerminalDisplay* removeTerminalDisplay(MultiTerminalDisplay* mtd);
 
     /**
-     * Assigns the focus to a non-specified leaf which belongs to the
-     * subtree starting at the given node
-     */
-    void setFocusToLeaf(MultiTerminalDisplay* mtd, MultiTerminalDisplayTree* tree) const;
-
-    /**
-     * Returns the leaf MTD with focus
+     * Returns the leaf MTD with focus, in the tree starting at the given node
      */
     MultiTerminalDisplay* getFocusedMultiTerminalDisplay(MultiTerminalDisplay* mtd) const;
 
@@ -243,7 +237,9 @@ public:
      * @return The closest TerminalDisplay to the given MultiTerminalDisplay in
      * the specified Direction
      */
-    TerminalDisplay* getTerminalDisplayTo(MultiTerminalDisplay* multiTerminalDisplay, Directions direction);
+    TerminalDisplay* getTerminalDisplayTo(MultiTerminalDisplay* multiTerminalDisplay
+                                         , Directions direction
+                                         , MultiTerminalDisplay* treeRoot);
 
     /**
      * Tells if the given MultiTerminalDisplay is a root node.
@@ -257,6 +253,13 @@ public:
      * view that must be shutdown.
      */
     void dismissMultiTerminals(MultiTerminalDisplay* multiTerminalDisplay);
+
+protected:
+
+    /**
+     * Callback for events.
+     */
+    bool eventFilter(QObject* obj, QEvent* event);
 
 private:
 
@@ -284,6 +287,18 @@ private:
     void splitMultiTerminalDisplay(MultiTerminalDisplay* container
                                  , MultiTerminalDisplay* widget1, MultiTerminalDisplay* widget2
                                  , Qt::Orientation orientation);
+
+    /**
+     * Assigns the focus to a non-specified leaf which belongs to the
+     * subtree starting at the given node
+     */
+    void setFocusToLeaf(MultiTerminalDisplay* mtd, MultiTerminalDisplayTree* tree) const;
+
+    /**
+     * Given a MultiTerminalDisplay, sets the focus to one of the
+     * TerminalDisplays it contains.
+     */
+    void setFocusForContainer(MultiTerminalDisplay* widget);
 
 private:
 

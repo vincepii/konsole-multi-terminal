@@ -319,9 +319,13 @@ void ViewManager::switchToView(int index)
     Q_ASSERT(index >= 0);
     ViewContainer* container = _viewSplitter->activeContainer();
     Q_ASSERT(container);
-    QList<QWidget*> containerViews = getTerminalsFromContainer(container);
-    if (index >= containerViews.count())
+    // TODO: sarebbero tutti i root terminal display, ma equivalgono
+    // alle view storate dal container
+    // QList<QWidget*> containerViews = getTerminalsFromContainer(container);
+    QList<QWidget*> containerViews = container->views();
+    if (index >= containerViews.count()) {
         return;
+    }
     container->setActiveView(containerViews.at(index));
 }
 void ViewManager::updateDetachViewState()
@@ -331,7 +335,8 @@ void ViewManager::updateDetachViewState()
 
     const bool splitView = _viewSplitter->containers().count() >= 2;
     const bool shouldEnable = splitView ||
-                              getTerminalsFromContainer(_viewSplitter->activeContainer()).count() >= 2;
+                              _viewSplitter->activeContainer()->views().count() >= 2;
+                              //getTerminalsFromContainer(_viewSplitter->activeContainer()).count() >= 2;
 
     QAction* detachAction = _actionCollection->action("detach-view");
 
@@ -413,7 +418,8 @@ void ViewManager::detachView(ViewContainer* container, QWidget* widgetView)
     // unless it is the only container in the window, in which case it is left empty
     // so that there is always an active container
     if (_viewSplitter->containers().count() > 1 &&
-            getTerminalsFromContainer(container).count() == 0) {
+            container->views().count() == 0) {
+            // getTerminalsFromContainer(container).count() == 0) {
         removeContainer(container);
     }
 }
@@ -492,7 +498,8 @@ void ViewManager::splitView(Qt::Orientation orientation)
     // TODO XXX: non va bene: prima era _viewSplitter->activeContainer()->views() che
     //       per un tab container significava tutte le tabs (1 tab per TerminalDisplay).
     //       Ora sono i TerminalDisplay in una singola tab.
-    foreach(QWidget* view,  getTerminalsFromContainer(_viewSplitter->activeContainer())) {
+    // foreach(QWidget* view,  getTerminalsFromContainer(_viewSplitter->activeContainer())) {
+    foreach(QWidget* view,  _viewSplitter->activeContainer()->views()) {
         Session* session = _sessionMap[qobject_cast<TerminalDisplay*>(view)];
         TerminalDisplay* display = createTerminalDisplay(session);
         MultiTerminalDisplay* mtd = _mtdManager->createRootTerminalDisplay(display, session, container);
@@ -525,6 +532,7 @@ void ViewManager::splitView(Qt::Orientation orientation)
 }
 void ViewManager::removeContainer(ViewContainer* container)
 {
+    // TODO: remove all the multiterminals
     // remove session map entries for views in this container
     foreach(QWidget* view , getTerminalsFromContainer(container)) {
         TerminalDisplay* display = qobject_cast<TerminalDisplay*>(view);
@@ -600,7 +608,7 @@ void ViewManager::moveMtdFocus(MultiTerminalDisplayManager::Directions direction
 {
     MultiTerminalDisplay* containerMtd = qobject_cast<MultiTerminalDisplay*>(_viewSplitter->activeContainer()->activeView());
     MultiTerminalDisplay* focusMtd = _mtdManager->getFocusedMultiTerminalDisplay(containerMtd);
-    TerminalDisplay* td = _mtdManager->getTerminalDisplayTo(focusMtd, direction);
+    TerminalDisplay* td = _mtdManager->getTerminalDisplayTo(focusMtd, direction, containerMtd);
     if (td) {
         td->setFocus();
     }
@@ -731,9 +739,8 @@ void ViewManager::createView(Session* session)
     if (_newTabBehavior == PutNewTabAfterCurrentTab) {
         QWidget* view = activeView();
         if (view) {
-            // TODO: This is wrong, we want a list of all the tabs (views in the stack) to get the index
-            // of the current one and append the tab after this.
-            QList<QWidget*> views =  getTerminalsFromContainer(_viewSplitter->activeContainer());
+            //QList<QWidget*> views =  getTerminalsFromContainer(_viewSplitter->activeContainer());
+            QList<QWidget*> views = _viewSplitter->activeContainer()->views();
             index = views.indexOf(view) + 1;
         }
     }
