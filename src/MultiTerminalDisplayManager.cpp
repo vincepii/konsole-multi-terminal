@@ -182,18 +182,6 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::createRootTerminalDisplay(Ter
     combineMultiTerminalDisplayAndTerminalDisplay(mtd, terminalDisplay);
 
     return mtd;
-
-// XXX old code
-//     // There was no MTD before this one, this is the first insertion
-//     MultiTerminalDisplay* mtd = new MultiTerminalDisplay;
-//     // Root MTD has null parent
-//     _mtdTree.insert(mtd, 0);
-//     _mtdContent.insert(mtd, terminalDisplay);
-//     _displays.insert(session, terminalDisplay);
-//     terminalDisplay->setParent(mtd);
-//     mtd->addWidget(terminalDisplay);
-//     _leaves.insert(mtd);
-//     return mtd;
 }
 
 void MultiTerminalDisplayManager::addTerminalDisplay(TerminalDisplay* terminalDisplay
@@ -221,50 +209,6 @@ void MultiTerminalDisplayManager::addTerminalDisplay(TerminalDisplay* terminalDi
 
     terminalDisplay->setFocus();
 
-
-
-
-// XXX old code
-//     Q_ASSERT(currentMultiTerminalDisplay != 0);
-//     // The current MTD is a leaf (will be promoted to non-leaf after insertion)
-//     Q_ASSERT(_mtdContent.values().contains(currentMultiTerminalDisplay) == false);
-//     // Create two new MTD, one for the existing TD and one for the new TD
-//     MultiTerminalDisplay* mtd1 = new MultiTerminalDisplay(currentMultiTerminalDisplay);
-//     MultiTerminalDisplay* mtd2 = new MultiTerminalDisplay(currentMultiTerminalDisplay);
-//     // Current TerminalDisplay
-//     TerminalDisplay* currentTd = _mtdContent[currentMultiTerminalDisplay];
-//     Q_ASSERT(currentTd);
-//     // This MTD will not be a leaf anymore and only leaves contain TerminalDisplays
-//     int numberOfTerminalDisplays = _mtdContent.remove(currentMultiTerminalDisplay);
-//     Q_ASSERT(numberOfTerminalDisplays == 1);
-//     // Hierarchy
-//     _mtdTree.insert(mtd1, currentMultiTerminalDisplay);
-//     _mtdTree.insert(mtd2, currentMultiTerminalDisplay);
-//     // TD holding
-//     _mtdContent.insert(mtd1, currentTd);
-//     _mtdContent.insert(mtd2, terminalDisplay);
-//     // Session
-//     _displays.insert(session, terminalDisplay);
-//     // Actual display
-//     mtd1->addWidget(currentTd);
-//     mtd2->addWidget(terminalDisplay);
-//     // Replication, get size of the current MTD
-//     QList<int> sizes = currentMultiTerminalDisplay->sizes();
-//     QList<int> childSizes;
-//     childSizes.append(sizes.at(0) / 2);
-//     childSizes.append(sizes.at(0) / 2);
-//     currentMultiTerminalDisplay->setOrientation(orientation);
-//     currentMultiTerminalDisplay->addWidget(mtd1);
-//     currentMultiTerminalDisplay->addWidget(mtd2);
-//     currentTd->setParent(mtd1);
-//     terminalDisplay->setParent(mtd2);
-//     currentMultiTerminalDisplay->setSizes(childSizes);
-//     // Update the leaves status
-//     _leaves.remove(currentMultiTerminalDisplay);
-//     _leaves.insert(mtd1);
-//     _leaves.insert(mtd2);
-//     // Set the focus to the new terminal display
-//     terminalDisplay->setFocus();
 }
 
 MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTerminalDisplay* mtd)
@@ -305,77 +249,6 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTe
 
     return sibling;
 
-
-
-
-
-
-
-
-// XXX old code
-//     // This must be a leaf node...
-//     bool isLeaf = _leaves.contains(mtd);
-//     Q_ASSERT(isLeaf);
-// 
-//     if (!isLeaf) {
-//         kError() << "Node to be removed must be a leaf";
-//         return NULL;
-//     }
-// 
-//     // This will point to the new leaf node that will have focus after the mtd is removed
-//     MultiTerminalDisplay* newLeaf = 0;
-// 
-//     // The node is a leaf
-// 
-//     // Clean the terminaldisplay
-//     TerminalDisplay* td = _mtdContent[mtd];
-//     Session* session = td->sessionController()->session().data();
-//     SessionController* controller = td->sessionController();
-//     controller->closeSession();
-// 
-//     // Take the parent node
-//     MultiTerminalDisplay* parent = _mtdTree[mtd];
-//     if (parent == 0) {
-//         // This is root and leaf, we are closing the last terminal
-//         td->setParent(0);
-//         newLeaf = 0;
-//     } else {
-//         // This is not root, the parent will become leaf and take the
-//         // TerminalDisplay of the other son, which will disappear as well
-// 
-//         // Get the sibling
-//         MultiTerminalDisplay* sibling = getSiblingOf(mtd);
-//         // Get the sibling's TerminalDisplay
-//         TerminalDisplay* siblingTd = _mtdContent[sibling];
-//         // This TD will be owned by the parent
-//         parent->addWidget(siblingTd);
-//         siblingTd->setParent(parent);
-//         sibling->setParent(0);
-//         _mtdContent[parent] = siblingTd;
-//         _leaves.insert(parent);
-//         // Set the focus
-//         siblingTd->setFocus();
-//         // This will be the new leaf after the given mtd is removed
-//         newLeaf = parent;
-// 
-//         _leaves.remove(sibling);
-//         _mtdContent.remove(sibling);
-//         _mtdTree.remove(sibling);
-// 
-//         delete sibling;
-//         sibling = 0;
-//     }
-// 
-//     // Cleanup the data structures
-//     _mtdContent.remove(mtd);
-//     _mtdTree.remove(mtd);
-//     _displays.remove(session);
-//     _leaves.remove(mtd);
-// 
-//     delete mtd;
-//     mtd = 0;
-// 
-//     return newLeaf;
 //     // TODO: the session has changed, the new one should be set as the current one somewhere?
 }
 
