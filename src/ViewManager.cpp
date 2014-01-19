@@ -499,7 +499,9 @@ void ViewManager::splitView(Qt::Orientation orientation)
     //       per un tab container significava tutte le tabs (1 tab per TerminalDisplay).
     //       Ora sono i TerminalDisplay in una singola tab.
     // foreach(QWidget* view,  getTerminalsFromContainer(_viewSplitter->activeContainer())) {
-    foreach(QWidget* view,  _viewSplitter->activeContainer()->views()) {
+    QList<QWidget*> terminals = getTerminalsFromContainer(_viewSplitter->activeContainer());
+    foreach(QWidget* view, terminals) {
+        // TODO: vincenzo: this will create a tab to clone each Multi Terminal
         Session* session = _sessionMap[qobject_cast<TerminalDisplay*>(view)];
         TerminalDisplay* display = createTerminalDisplay(session);
         MultiTerminalDisplay* mtd = _mtdManager->createRootTerminalDisplay(display, session, container);
