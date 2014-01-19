@@ -281,12 +281,12 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::getFocusedMultiTerminalDispla
 
 QList<QWidget*> MultiTerminalDisplayManager::getTerminalDisplays() const
 {
-    // Return all the leaves
+    // Get all the leaves of all the trees and return every TerminalDisplay
     QList<QWidget*> l;
-    foreach (MultiTerminalDisplayTree* tree, _trees.values()) {
+    foreach (MultiTerminalDisplayTree* tree, getTrees()) {
         QSet<MultiTerminalDisplay*> leaves = tree->getLeaves();
-        foreach (QWidget* leaf, leaves) {
-            l.push_back(leaf);
+        foreach (MultiTerminalDisplay* leaf, leaves) {
+            l.push_back(_mtdContent[leaf]);
         }
     }
     return l;
@@ -340,18 +340,6 @@ bool MultiTerminalDisplayManager::isRootNode(MultiTerminalDisplay* mtd) const
     }
 
     return tree->isRoot(mtd);
-
-// XXX old code
-
-//     QHash<MultiTerminalDisplay*, MultiTerminalDisplay*>::const_iterator it = _mtdTree.find(mtd);
-//     Q_ASSERT(it != _mtdTree.end());
-// 
-//     if (it != _mtdTree.end()) {
-//         return it.value() == 0;
-//     }
-// 
-//     kWarning() << "Given node is not in the tree of MultiTerminalDisplay";
-//     return false;
 }
 
 void MultiTerminalDisplayManager::dismissMultiTerminals(MultiTerminalDisplay* multiTerminalDisplay)
@@ -375,6 +363,11 @@ void MultiTerminalDisplayManager::setFocusForContainer(MultiTerminalDisplay* wid
     // TODO: use a stack of focused widgets
     MultiTerminalDisplayTree* tree = _trees[widget];
     setFocusToLeaf(widget, tree);
+}
+
+QSet< MultiTerminalDisplayTree* > MultiTerminalDisplayManager::getTrees() const
+{
+    return (QSet<MultiTerminalDisplayTree*>::fromList(_trees.values()));
 }
 
 bool MultiTerminalDisplayManager::eventFilter(QObject* obj, QEvent* event)

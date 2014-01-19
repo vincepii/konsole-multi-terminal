@@ -300,6 +300,11 @@ private:
      */
     void setFocusForContainer(MultiTerminalDisplay* widget);
 
+    /**
+     * Returns a set of all the trees that are controlled by this manager.
+     */
+    QSet<MultiTerminalDisplayTree*> getTrees() const;
+
 private:
 
     /** For each MultiTerminalDisplay tells which is the tree to
