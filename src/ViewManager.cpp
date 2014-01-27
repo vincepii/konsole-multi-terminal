@@ -502,6 +502,7 @@ void ViewManager::splitView(Qt::Orientation orientation)
     QList<QWidget*> terminals = getTerminalsFromContainer(_viewSplitter->activeContainer());
     foreach(QWidget* view, terminals) {
         // TODO: vincenzo: this will create a tab to clone each Multi Terminal
+        // put the multiterminal of the same tab in the same split
         Session* session = _sessionMap[qobject_cast<TerminalDisplay*>(view)];
         TerminalDisplay* display = createTerminalDisplay(session);
         MultiTerminalDisplay* mtd = _mtdManager->createRootTerminalDisplay(display, session, container);
@@ -576,13 +577,16 @@ void ViewManager::multiTerminalClose()
 
     // MultiTerminalDisplay with focus
     MultiTerminalDisplay* mtd = _mtdManager->getFocusedMultiTerminalDisplay(containerMtd);
-    if (_mtdManager->isRootNode(qobject_cast<MultiTerminalDisplay*>(mtd->parent()))) {
-        // We will remove this node and its parent is root, so there will be
-        // a single and last terminal in this view. Disable the multi terminal
-        // close button
+    MultiTerminalDisplay* root = _mtdManager->getRootNode(containerMtd);
+
+    _mtdManager->removeTerminalDisplay(mtd);
+
+    if (_mtdManager->getNumberOfNodes(root) == 1) {
+        // There will be only one terminal left in this view.
+        // Disable the multi terminal close button
         emit closeMultiTerminalToggle(false);
     }
-    _mtdManager->removeTerminalDisplay(mtd);
+
     //_mtdManager->dismissMultiTerminals(mtd);
 }
 

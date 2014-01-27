@@ -149,6 +149,16 @@ MultiTerminalDisplay* MultiTerminalDisplayTree::getLeafOfSubtree(MultiTerminalDi
     return mtd;
 }
 
+int MultiTerminalDisplayTree::getNumberOfNodes() const
+{
+    return _childToParent.keys().count();
+}
+
+MultiTerminalDisplay* MultiTerminalDisplayTree::getRootNode() const
+{
+    return _root;
+}
+
 // TODO: implement a stack of focused widgets for each tree
 //  * when a widget is removed, give focus to the one that had it before
 //  * when a different tab is selected, give the focus to the widget that had it
@@ -356,6 +366,18 @@ void MultiTerminalDisplayManager::dismissMultiTerminals(MultiTerminalDisplay* mu
         // Node is not root, remove any node up to the root
         deleteMtd = removeTerminalDisplay(deleteMtd);
     }
+}
+
+int MultiTerminalDisplayManager::getNumberOfNodes(MultiTerminalDisplay* mtd) const
+{
+    MultiTerminalDisplayTree* tree = _trees[mtd];
+    return tree->getNumberOfNodes();
+}
+
+MultiTerminalDisplay* MultiTerminalDisplayManager::getRootNode(MultiTerminalDisplay* mtd) const
+{
+    MultiTerminalDisplayTree* tree = _trees[mtd];
+    return tree->getRootNode();
 }
 
 void MultiTerminalDisplayManager::setFocusForContainer(MultiTerminalDisplay* widget)

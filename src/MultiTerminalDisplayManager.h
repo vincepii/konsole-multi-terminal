@@ -124,12 +124,21 @@ public:
      */
     MultiTerminalDisplay* getLeafOfSubtree(MultiTerminalDisplay* mtd) const;
 
+    /**
+     * Returns the number of nodes that make up this tree
+     */
+    int getNumberOfNodes() const;
+
+    /**
+     * Returns the root node of this tree
+     */
+    MultiTerminalDisplay* getRootNode() const;
+
 private:
 
     /** With respect to a certain node, its children are a pair of
      * MultiTerminalDisplays */
     typedef QPair<MultiTerminalDisplay*, MultiTerminalDisplay*> MtdTreeChildren;
-
 
     /** Maps each node to its parent */
     QHash<MultiTerminalDisplay*, MultiTerminalDisplay*> _childToParent;
@@ -253,6 +262,18 @@ public:
      * view that must be shutdown.
      */
     void dismissMultiTerminals(MultiTerminalDisplay* multiTerminalDisplay);
+
+    /**
+     * Given a certain MTD, returns the number of nodes in the tree
+     * to which this MTD belongs.
+     */
+    int getNumberOfNodes(MultiTerminalDisplay* mtd) const;
+
+    /**
+     * Given a certain MTD, returns the root node of the tree to which
+     * the MTD belongs
+     */
+    MultiTerminalDisplay* getRootNode(MultiTerminalDisplay* mtd) const;
 
 protected:
 
