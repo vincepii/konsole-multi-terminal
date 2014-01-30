@@ -256,9 +256,10 @@ public:
     bool isRootNode(MultiTerminalDisplay* mtd) const;
 
     /**
-     * Properly shuts down all the terminals leaving only the root
+     * Properly shuts down all the terminals, deleting every node
+     * of the tree to which the given multiTerminalDisplay belongs.
      * 
-     * @param multiTerminalDisplay any leaf MultiTerminalDisplay belonging to
+     * @param multiTerminalDisplay any MultiTerminalDisplay belonging to
      * view that must be shutdown.
      */
     void dismissMultiTerminals(MultiTerminalDisplay* multiTerminalDisplay);
@@ -283,17 +284,6 @@ protected:
     bool eventFilter(QObject* obj, QEvent* event);
 
 private:
-
-    /**
-     * Given a (non-root) node, returns its sibling.
-     * 
-     * Every non leaf node has two children, so a result can be returned
-     * here for every node except the root.
-     * 
-     * Note: this is a bit inefficient: a dedicated data structure could hold
-     * the parent-children relationships.
-     */
-    MultiTerminalDisplay* getSiblingOf(MultiTerminalDisplay* multiTerminalDisplay);
 
     /**
      * Puts together a MultiTerminalDisplay and its TerminalDisplay.
@@ -340,26 +330,6 @@ private:
      * nodes are key to this Hash.
      */
     QHash<MultiTerminalDisplay*, TerminalDisplay*> _mtdContent;
-
-// XXX old
-    /**
-     * Map that for each MultiTerminalDisplay tells who is its parent
-     * in the tree of the MultiTerminal splits (the father of the root
-     * node is NULL).
-     * 
-     * The key is the child, the value is the father (each child has only one
-     * father).
-     */
-    QHash<MultiTerminalDisplay*, MultiTerminalDisplay*> _mtdTree;
-    
-    /**
-     * Set of leaves: the MultiTerminalDisplay which are not split
-     * and are actually displaying an usable TerminalDisplay
-     */
-    QSet<MultiTerminalDisplay*> _leaves;
-    
-    /** TerminalDisplay for each Session */
-    QHash<Session*, TerminalDisplay*> _displays;
 
     const int UNSPECIFIED_DISTANCE;
 };

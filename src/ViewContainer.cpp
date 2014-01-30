@@ -567,7 +567,6 @@ void TabbedViewContainer::openTabContextMenu(int index, const QPoint& pos)
 
 void TabbedViewContainer::tabContextMenuCloseTab()
 {
-    // TODO: close also every multiterminal
     _tabBar->setCurrentIndex(_contextMenuTabIndex);// Required for this to work
     emit closeTab(this, _stackWidget->widget(_contextMenuTabIndex));
 }

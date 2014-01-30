@@ -87,6 +87,7 @@ void MultiTerminalDisplayTree::removeNode(MultiTerminalDisplay* node)
         // Tree will remain empty!
         _root = NULL;
         _leaves.remove(node);
+        _childToParent.remove(node);
         return;
     }
 
@@ -236,26 +237,21 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTe
 
     if (sibling == NULL) {
         // We are removing the root node
-        delete tree;
         mtd->setParent(NULL);
-        delete mtd;
-        return NULL;
+    } else {
+        // Sibling existed, the parent will be the actual parent after the tree has been modified
+        MultiTerminalDisplay* newParent = tree->getParentOf(sibling);
+        // Note, this is the QT relationship!
+        if (newParent != NULL) {
+            // Only if sibling is not root
+            sibling->setParent(newParent);
+        }
+        // Set the focus
+        setFocusToLeaf(sibling, tree);
     }
-
-    // Sibling existed, the parent will be the actual parent after the tree has been modified
-    MultiTerminalDisplay* newParent = tree->getParentOf(sibling);
-    // Note, this is the QT relationship!
-    if (newParent != NULL) {
-        // Only if sibling is not root
-        sibling->setParent(newParent);
-    }
-
-    // Set the focus
-    setFocusToLeaf(sibling, tree);
 
     _trees.remove(mtd);
     delete mtd;
-    mtd = NULL;
 
     return sibling;
 
@@ -354,18 +350,31 @@ bool MultiTerminalDisplayManager::isRootNode(MultiTerminalDisplay* mtd) const
 
 void MultiTerminalDisplayManager::dismissMultiTerminals(MultiTerminalDisplay* multiTerminalDisplay)
 {
-    bool isLeaf = _leaves.contains(multiTerminalDisplay);
-    Q_ASSERT(isleaf);
+    MultiTerminalDisplayTree* tree = _trees[multiTerminalDisplay];
+    QSet<MultiTerminalDisplay*> leaves = tree->getLeaves();
 
-    if (!isLeaf) {
-        kError() << "Wrong argument: object is not a leaf";
+    while (leaves.size() > 0) {
+        MultiTerminalDisplay* newFocusedNode = removeTerminalDisplay(*leaves.begin());
+        leaves = tree->getLeaves();
     }
 
-    MultiTerminalDisplay* deleteMtd = multiTerminalDisplay;
-    while (_mtdTree[deleteMtd] != 0) {
-        // Node is not root, remove any node up to the root
-        deleteMtd = removeTerminalDisplay(deleteMtd);
-    }
+    Q_ASSERT(tree->getNumberOfNodes() == 0);
+    Q_ASSERT(_trees.values().contains(tree) == false);
+
+    delete tree;
+// XXX old code
+//     bool isLeaf = _leaves.contains(multiTerminalDisplay);
+//     Q_ASSERT(isleaf);
+// 
+//     if (!isLeaf) {
+//         kError() << "Wrong argument: object is not a leaf";
+//     }
+// 
+//     MultiTerminalDisplay* deleteMtd = multiTerminalDisplay;
+//     while (_mtdTree[deleteMtd] != 0) {
+//         // Node is not root, remove any node up to the root
+//         deleteMtd = removeTerminalDisplay(deleteMtd);
+//     }
 }
 
 int MultiTerminalDisplayManager::getNumberOfNodes(MultiTerminalDisplay* mtd) const
@@ -403,26 +412,6 @@ bool MultiTerminalDisplayManager::eventFilter(QObject* obj, QEvent* event)
     }
 
     return QObject::eventFilter(obj, event);
-}
-
-MultiTerminalDisplay* MultiTerminalDisplayManager::getSiblingOf(MultiTerminalDisplay* multiTerminalDisplay)
-{
-    MultiTerminalDisplay* parent = _mtdTree[multiTerminalDisplay];
-    Q_ASSERT(parent != 0);
-
-    if (parent == 0) {
-        // The given mtd is root
-        return 0;
-    }
-
-    foreach (MultiTerminalDisplay* mtd , _mtdTree.keys()) {
-        if (_mtdTree.value(mtd) == parent && mtd != multiTerminalDisplay) {
-            return mtd;
-        }
-    }
-
-    // Not found
-    return 0;
 }
 
 void MultiTerminalDisplayManager::combineMultiTerminalDisplayAndTerminalDisplay(MultiTerminalDisplay* mtd, TerminalDisplay* td)

@@ -1278,10 +1278,14 @@ void ViewManager::setTabWidthToText(bool useTextWidth)
 
 void ViewManager::closeTabFromContainer(ViewContainer* container, QWidget* tab)
 {
-    SessionController* controller = qobject_cast<SessionController*>(container->viewProperties(tab));
-    Q_ASSERT(controller);
-    if (controller)
-        controller->closeSession();
+    // TODO: dismiss all the multi terminals in this tab
+    // TODO: The argument should not be TAB, but the MTD with focus
+    MultiTerminalDisplay* root = qobject_cast<MultiTerminalDisplay*>(tab);
+    _mtdManager->dismissMultiTerminals(root);
+//     SessionController* controller = qobject_cast<SessionController*>(container->viewProperties(root));
+//     Q_ASSERT(controller);
+//     if (controller)
+//         controller->closeSession();
 }
 
 void ViewManager::setNavigationVisibility(int visibility)
