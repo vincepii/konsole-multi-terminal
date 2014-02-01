@@ -97,6 +97,14 @@ public:
      * The current node is deleted from the tree and its sibling will replace
      * their parent.
      * 
+     * The algorithm is:
+     * * the node that must be deleted (rnode) must be root, or error
+     * * if we are removing the root node, we have no tree anymore!
+     * * the sibling of rnode will occupy the space that belonged to rnode, so it will
+     *   just replace their parent
+     * * basically: take rnode out and put the sibling and its subtree at the place
+     *   of the parent
+     * 
      * If the node is root, it will just be removed.
      */
     void removeNode(MultiTerminalDisplay* node);
@@ -330,6 +338,12 @@ private:
      * nodes are key to this Hash.
      */
     QHash<MultiTerminalDisplay*, TerminalDisplay*> _mtdContent;
+
+    /**
+     * Maps each tree to the container in which its multi terminals are
+     * displayed.
+     */
+    QHash<MultiTerminalDisplayTree*, ViewContainer*> _treeToContainer;
 
     const int UNSPECIFIED_DISTANCE;
 };

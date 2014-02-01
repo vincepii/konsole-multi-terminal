@@ -187,6 +187,8 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::createRootTerminalDisplay(Ter
     MultiTerminalDisplayTree* mtdTree = new MultiTerminalDisplayTree(mtd);
     _trees.insert(mtd, mtdTree);
 
+    _treeToContainer.insert(mtdTree, container);
+
     // We want to know when this object will get focus
     mtd->installEventFilter(this);
 
@@ -231,27 +233,36 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTe
 
     // Adjust the tree
     MultiTerminalDisplayTree* tree = _trees[mtd];
+
+    // Get the parent of the node to be removed before the tree changes
+    MultiTerminalDisplay* parent = tree->getParentOf(mtd);
+
     // The sibling will take the space of the parent
     MultiTerminalDisplay* sibling = tree->getSiblingOf(mtd);
+    // This will change the tree
     tree->removeNode(mtd);
 
     if (sibling == NULL) {
-        // We are removing the root node
-        mtd->setParent(NULL);
+        // sibling is null if we are deleting the root node
+        // Remove also the container
+        ViewContainer* container = _treeToContainer[tree];
+        // TODO: the argument here is not mtd, the root can change, we should store this upon creation
+//         SessionController* controller = qobject_cast<SessionController*>(container->viewProperties(mtd));
+//         Q_ASSERT(controller);
+//         if (controller)
+//             controller->closeSession();
     } else {
         // Sibling existed, the parent will be the actual parent after the tree has been modified
         MultiTerminalDisplay* newParent = tree->getParentOf(sibling);
-        // Note, this is the QT relationship!
-        if (newParent != NULL) {
-            // Only if sibling is not root
-            sibling->setParent(newParent);
-        }
+        // Note, this is the QT relationship! Also, newParent could be NULL
+        sibling->setParent(newParent);
         // Set the focus
         setFocusToLeaf(sibling, tree);
     }
 
     _trees.remove(mtd);
     delete mtd;
+    delete parent; // could be null
 
     return sibling;
 
@@ -407,7 +418,6 @@ bool MultiTerminalDisplayManager::eventFilter(QObject* obj, QEvent* event)
     MultiTerminalDisplay* mtd = qobject_cast<MultiTerminalDisplay*>(obj);
 
     if (event->type() == QEvent::FocusIn) {
-        kDebug() << "Konsole::MultiTerminalDisplayManager::eventFilter, focus in!";
         setFocusForContainer(mtd);
     }
 

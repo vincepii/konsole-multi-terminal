@@ -779,7 +779,6 @@ void Session::close()
 
 bool Session::closeInNormalWay()
 {
-    kDebug() << "VINCENZO: close in normal way";
     _autoClose    = true;
     _closePerUserRequest = true;
 
@@ -790,7 +789,6 @@ bool Session::closeInNormalWay()
     // 3). the user closes the tab explicitly
     //
     if (!isRunning()) {
-        kDebug() << "VINCENZO: emitting finished signal";
         emit finished();
         return true;
     }
