@@ -34,6 +34,7 @@ namespace Konsole
 class ViewContainer;
 class Session;
 class TerminalDisplay;
+class ViewManager;
 
 typedef QSplitter MultiTerminalDisplay;
 
@@ -194,7 +195,7 @@ enum Directions {
 };
 
 public:
-    explicit MultiTerminalDisplayManager(QObject* parent = 0);
+    explicit MultiTerminalDisplayManager(ViewManager* viewManager, QObject* parent = 0);
     ~MultiTerminalDisplayManager();
 
     /**
@@ -291,6 +292,10 @@ protected:
      */
     bool eventFilter(QObject* obj, QEvent* event);
 
+signals:
+
+    void viewRemoved(TerminalDisplay* td);
+
 private:
 
     /**
@@ -345,6 +350,15 @@ private:
      */
     QHash<MultiTerminalDisplayTree*, ViewContainer*> _treeToContainer;
 
+    /**
+     * Reference to the ViewManager which instantiates this object
+     */
+    ViewManager* _viewManager;
+
+    /**
+     * Default distance between multi-terminals, used to implemnt the
+     * moveTo[left/up/right/down] shortcuts.
+     */
     const int UNSPECIFIED_DISTANCE;
 };
 

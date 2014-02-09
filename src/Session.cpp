@@ -804,7 +804,6 @@ bool Session::closeInNormalWay()
 
 bool Session::closeInForceWay()
 {
-    kDebug() << "VINCENZO: close in force way";
     _autoClose    = true;
     _closePerUserRequest = true;
 
@@ -844,7 +843,6 @@ void Session::done(int exitCode, QProcess::ExitStatus exitStatus)
     }
 
     if (_closePerUserRequest) {
-        kDebug() << "VINCENZO: emitting finished signal 2";
         emit finished();
         return;
     }
@@ -868,7 +866,6 @@ void Session::done(int exitCode, QProcess::ExitStatus exitStatus)
         message = i18n("Program '%1' crashed.", _program);
         terminalWarning(message);
     } else {
-        kDebug() << "VINCENZO: emitting finished signal 3";
         emit finished();
     }
 }

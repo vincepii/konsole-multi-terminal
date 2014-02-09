@@ -34,6 +34,7 @@
 #include "ViewContainer.h"
 #include "SessionController.h"
 #include "Session.h"
+#include "ViewManager.h"
 
 // Others
 #include <math.h>
@@ -164,10 +165,16 @@ MultiTerminalDisplay* MultiTerminalDisplayTree::getRootNode() const
 //  * when a widget is removed, give focus to the one that had it before
 //  * when a different tab is selected, give the focus to the widget that had it
 
-MultiTerminalDisplayManager::MultiTerminalDisplayManager(QObject* parent /* = 0 */) :
+MultiTerminalDisplayManager::MultiTerminalDisplayManager(ViewManager* viewManager
+    , QObject* parent /* = 0 */) :
     QObject(parent),
+    _viewManager(viewManager),
     UNSPECIFIED_DISTANCE(-1)
 {
+    // TODO: connect a signal to the viewDestroyed slot, to finish clearing the sessions.
+    // also check the other connections of ViewManager::createContainer, as we might need them
+    // also put this code every time a mtd is created (helper method)
+   connect(this, SIGNAL(viewRemoved(QWidget*)), _viewManager, SLOT(viewDestroyed(QWidget*)));
 }
 
 MultiTerminalDisplayManager::~MultiTerminalDisplayManager()
@@ -181,7 +188,7 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::createRootTerminalDisplay(Ter
     , ViewContainer* container)
 {
     // There was no MTD before this one, this is the first insertion
-    MultiTerminalDisplay* mtd = new MultiTerminalDisplay;
+    MultiTerminalDisplay* mtd = new MultiTerminalDisplay(container);
 
     // We have to start a new tree
     MultiTerminalDisplayTree* mtdTree = new MultiTerminalDisplayTree(mtd);
@@ -229,6 +236,7 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTe
     // Close the Terminal Display
     TerminalDisplay* removeTd = _mtdContent[mtd];
     removeTd->sessionController()->closeSession();
+    emit viewRemoved(removeTd);
     _mtdContent.remove(mtd);
 
     // Adjust the tree
@@ -254,8 +262,13 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTe
     } else {
         // Sibling existed, the parent will be the actual parent after the tree has been modified
         MultiTerminalDisplay* newParent = tree->getParentOf(sibling);
-        // Note, this is the QT relationship! Also, newParent could be NULL
-        sibling->setParent(newParent);
+        if (newParent == NULL) {
+            // The sibling of the node that was removed is now the root node
+            ViewContainer* container = _treeToContainer[tree];
+            sibling->setParent(container);
+        } else {
+            sibling->setParent(newParent);
+        }
         // Set the focus
         setFocusToLeaf(sibling, tree);
     }
@@ -372,20 +385,8 @@ void MultiTerminalDisplayManager::dismissMultiTerminals(MultiTerminalDisplay* mu
     Q_ASSERT(tree->getNumberOfNodes() == 0);
     Q_ASSERT(_trees.values().contains(tree) == false);
 
+    _treeToContainer.remove(tree);
     delete tree;
-// XXX old code
-//     bool isLeaf = _leaves.contains(multiTerminalDisplay);
-//     Q_ASSERT(isleaf);
-// 
-//     if (!isLeaf) {
-//         kError() << "Wrong argument: object is not a leaf";
-//     }
-// 
-//     MultiTerminalDisplay* deleteMtd = multiTerminalDisplay;
-//     while (_mtdTree[deleteMtd] != 0) {
-//         // Node is not root, remove any node up to the root
-//         deleteMtd = removeTerminalDisplay(deleteMtd);
-//     }
 }
 
 int MultiTerminalDisplayManager::getNumberOfNodes(MultiTerminalDisplay* mtd) const

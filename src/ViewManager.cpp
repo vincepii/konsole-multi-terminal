@@ -73,7 +73,7 @@ ViewManager::ViewManager(QObject* parent , KActionCollection* collection)
     _viewSplitter = new ViewSplitter(0);
     KAcceleratorManager::setNoAccel(_viewSplitter);
 
-    _mtdManager = new MultiTerminalDisplayManager;
+    _mtdManager = new MultiTerminalDisplayManager(this);
     
     // the ViewSplitter class supports both recursive and non-recursive splitting,
     // in non-recursive mode, all containers are inserted into the same top-level splitter
@@ -698,10 +698,7 @@ void ViewManager::createView(Session* session, ViewContainer* container, int ind
     TerminalDisplay* display = createTerminalDisplay(session);
 
     MultiTerminalDisplay* multiTerminalDisplay = _mtdManager->createRootTerminalDisplay(display, session, container);
-    // This element should not be already here, only one MTD per container
-//     Q_ASSERT(_multiTerminalsMap.find(container) == _multiTerminalsMap.end());
-//     _multiTerminalsMap[container] = multiTerminalDisplay;
-    
+
     const Profile::Ptr profile = SessionManager::instance()->sessionProfile(session);
     applyProfileToView(display, profile);
 
