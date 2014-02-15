@@ -180,7 +180,7 @@ MultiTerminalDisplayManager::MultiTerminalDisplayManager(ViewManager* viewManage
 MultiTerminalDisplayManager::~MultiTerminalDisplayManager()
 {
     // TODO
-    // Destroy all the new objects!!
+    // Delete remaining objects
 }
 
 MultiTerminalDisplay* MultiTerminalDisplayManager::createRootTerminalDisplay(TerminalDisplay* terminalDisplay
@@ -265,7 +265,33 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTe
             container->addView(sibling, _mtdContent[tree->getLeafOfSubtree(sibling)]->sessionController());
             container->removeView(parent);
         } else {
+            // The size of the split
+            QSize newParentSize = newParent->size();
+            // This is the new node with which we will share the split
+            MultiTerminalDisplay* newSibling = tree->getSiblingOf(sibling);
+            int newSiblingIndex = newParent->indexOf(newSibling);
+            QSize newSiblingSize = newSibling->size();
+            // Remove the parent as it will be replaced by the sibling
+            parent->setParent(NULL);
+            // Respect the position of the existing node (newSiblingIndex)
+            newParent->insertWidget(1 - newSiblingIndex ,sibling);
             sibling->setParent(newParent);
+            // Resize the widgets
+            if (newParent->orientation() == Qt::Horizontal) {
+                int siblingWidth = newParentSize.width() - newSiblingSize.width();
+                QList<int> sizes;
+                sizes.append(siblingWidth);
+                // Go before or after depending on the position of the two widgets
+                sizes.insert(newSiblingIndex, newSiblingSize.width());
+                newParent->setSizes(sizes);
+            } else {
+                int siblingHeight = newParentSize.height() - newSiblingSize.height();
+                QList<int> sizes;
+                sizes.append(siblingHeight);
+                // Go before or after depending on the position of the two widgets
+                sizes.insert(newSiblingIndex, newSiblingSize.height());
+                newParent->setSizes(sizes);
+            }
         }
         // Set the focus
         setFocusToLeaf(sibling, tree);
