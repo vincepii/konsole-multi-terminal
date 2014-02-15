@@ -782,11 +782,12 @@ void ViewManager::createMultiTerminalView(Qt::Orientation orientation)
     applyProfileToView(display, profile);
     _sessionMap[display] = session;
     session->addView(display);
+    createController(session, display);
+
     MultiTerminalDisplay* containerMtd = qobject_cast<MultiTerminalDisplay*>(_viewSplitter->activeContainer()->activeView());
     MultiTerminalDisplay* multiTerminalDisplay = _mtdManager->getFocusedMultiTerminalDisplay(containerMtd);
     _mtdManager->addTerminalDisplay(display, session, multiTerminalDisplay, orientation);
 
-    createController(session, display);
 
     session->setDarkBackground(colorSchemeForProfile(profile)->hasDarkBackground());
 

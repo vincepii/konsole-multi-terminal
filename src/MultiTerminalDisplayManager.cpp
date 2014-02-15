@@ -231,7 +231,6 @@ void MultiTerminalDisplayManager::addTerminalDisplay(TerminalDisplay* terminalDi
     splitMultiTerminalDisplay(currentMultiTerminalDisplay, mtd1, mtd2, orientation);
 
     terminalDisplay->setFocus();
-
 }
 
 MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTerminalDisplay* mtd)
@@ -253,22 +252,18 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTe
     // This will change the tree
     tree->removeNode(mtd);
 
-    if (sibling == NULL) {
-        // sibling is null if we are deleting the root node
-        // Remove also the container
-        ViewContainer* container = _treeToContainer[tree];
-        // TODO: the argument here is not mtd, the root can change, we should store this upon creation
-//         SessionController* controller = qobject_cast<SessionController*>(container->viewProperties(mtd));
-//         Q_ASSERT(controller);
-//         if (controller)
-//             controller->closeSession();
-    } else {
+    // Note: sibling is null if we are deleting the root node
+    if (sibling != NULL) {
         // Sibling existed, the parent will be the actual parent after the tree has been modified
         MultiTerminalDisplay* newParent = tree->getParentOf(sibling);
         if (newParent == NULL) {
             // The sibling of the node that was removed is now the root node
             ViewContainer* container = _treeToContainer[tree];
+            // Note: this is the QT relationship, not the MTDTree.
             sibling->setParent(container);
+            // Get the session controller from one of the leaves in the subtree at sibling
+            container->addView(sibling, _mtdContent[tree->getLeafOfSubtree(sibling)]->sessionController());
+            container->removeView(parent);
         } else {
             sibling->setParent(newParent);
         }
