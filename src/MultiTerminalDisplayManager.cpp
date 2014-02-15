@@ -201,6 +201,9 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::createRootTerminalDisplay(Ter
 
     combineMultiTerminalDisplayAndTerminalDisplay(mtd, terminalDisplay);
 
+    // The initial split must contain only one child: the terminal display.
+    container->hide();
+
     return mtd;
 }
 
