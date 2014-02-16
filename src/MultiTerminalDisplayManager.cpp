@@ -179,8 +179,7 @@ MultiTerminalDisplayManager::MultiTerminalDisplayManager(ViewManager* viewManage
 
 MultiTerminalDisplayManager::~MultiTerminalDisplayManager()
 {
-    // TODO
-    // Delete remaining objects
+    // Nothing to do... hopefully
 }
 
 MultiTerminalDisplay* MultiTerminalDisplayManager::createRootTerminalDisplay(TerminalDisplay* terminalDisplay
@@ -265,6 +264,7 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTe
             container->addView(sibling, _mtdContent[tree->getLeafOfSubtree(sibling)]->sessionController());
             container->removeView(parent);
         } else {
+            // We need to put sibling at the place of its former parent
             // The size of the split
             QSize newParentSize = newParent->size();
             // This is the new node with which we will share the split
