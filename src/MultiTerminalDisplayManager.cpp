@@ -346,6 +346,16 @@ QList<QWidget*> MultiTerminalDisplayManager::getTerminalDisplays() const
     return l;
 }
 
+QSet<TerminalDisplay*> MultiTerminalDisplayManager::getTerminalDisplaysOfContainer(MultiTerminalDisplay* multiTerminalDisplay) const
+{
+    QSet<TerminalDisplay*> tds;
+    foreach(MultiTerminalDisplay* mtd, _trees[multiTerminalDisplay]->getLeaves()) {
+        tds.insert(_mtdContent[mtd]);
+    }
+    return tds;
+}
+
+
 TerminalDisplay* MultiTerminalDisplayManager::getTerminalDisplayTo(
     MultiTerminalDisplay* multiTerminalDisplay
     , MultiTerminalDisplayManager::Directions direction

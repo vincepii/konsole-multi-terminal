@@ -249,6 +249,12 @@ public:
     QList<QWidget*> getTerminalDisplays() const;
 
     /**
+     * Returns a list of all the TerminalDisplay objects that belong to the same container
+     * of the given MultiTerminalDisplay.
+     */
+    QSet<TerminalDisplay*> getTerminalDisplaysOfContainer(MultiTerminalDisplay* mtd) const;
+
+    /**
      * Given a leaf MultiTerminalDisplay, returns the TerminalDisplay which is
      * closest to that one in the specified direction.
      * 

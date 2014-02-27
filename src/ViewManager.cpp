@@ -400,15 +400,17 @@ void ViewManager::detachView(ViewContainer* container, QWidget* widgetView)
 #if !defined(ENABLE_DETACHING)
     return;
 #endif
-
-    TerminalDisplay * viewToDetach = qobject_cast<TerminalDisplay*>(widgetView);
+    
+    MultiTerminalDisplay * viewToDetach = qobject_cast<MultiTerminalDisplay*>(widgetView);
 
     if (!viewToDetach)
         return;
 
-    emit viewDetached(_sessionMap[viewToDetach]);
-
-    _sessionMap.remove(viewToDetach);
+    QSet<TerminalDisplay*> tds = _mtdManager->getTerminalDisplaysOfContainer(viewToDetach);
+    foreach (TerminalDisplay* td, tds) {
+        emit viewDetached(_sessionMap[td]);
+        _sessionMap.remove(td);
+    }
 
     // remove the view from this window
     container->removeView(viewToDetach);
