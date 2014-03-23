@@ -72,6 +72,10 @@ class MultiTerminalDisplayTree {
 
 public:
 
+    /** With respect to a certain node, its children are a pair of
+     * MultiTerminalDisplays */
+    typedef QPair<MultiTerminalDisplay*, MultiTerminalDisplay*> MtdTreeChildren;
+
     /**
      * Constructor for a new tree.
      * 
@@ -142,12 +146,28 @@ public:
      * Returns the root node of this tree
      */
     MultiTerminalDisplay* getRootNode() const;
+    
+    /**
+     * Traverse the MultiTerminalDisplayTree and returns a pointer to the next
+     * node.
+     * The pointers are yelded as in python "yeld", each invocation of the method
+     * yelds another pointer or NULL if all the tree has been traversed.
+     * 
+     * Tree traversal is done with a stack and it is a depth first traversal.
+     * 
+     * Note that after traversal has started and before it has completed (i.e.,
+     * before the method has returned NULL), the method maintains
+     * the internal state of the current traversal, so if a new traversal will
+     * start at that point, the behavior will be undefined.
+     */
+    MultiTerminalDisplay* traverseTreeAndYeldNodes(MultiTerminalDisplay* currentNode);
+    
+    /**
+     * Returns the children of the given node in the tree
+     */
+    MtdTreeChildren getChildrenOf(MultiTerminalDisplay* node);
 
 private:
-
-    /** With respect to a certain node, its children are a pair of
-     * MultiTerminalDisplays */
-    typedef QPair<MultiTerminalDisplay*, MultiTerminalDisplay*> MtdTreeChildren;
 
     /** Maps each node to its parent */
     QHash<MultiTerminalDisplay*, MultiTerminalDisplay*> _childToParent;
@@ -291,6 +311,23 @@ public:
      */
     MultiTerminalDisplay* getRootNode(MultiTerminalDisplay* mtd) const;
 
+    /**
+     * Given a MTD, considers the MTDTree to which that belongs and recreate
+     * a new MultiTerminalDisplay that has the same tree and the same terminal
+     * sessions.
+     * 
+     * The logic of the method is as follows:
+     * * We traverse the original source tree (the one to be cloned) and keep a pointer
+     *   to each one of its nodes
+     * * If that node is not a leaf, we create two new nodes and add them to the cloned
+     *   node that corresponds to the current one in the source tree
+     * * If the node is a leaf, we add to it the terminalDisplay of the node to which
+     *   that corresponds in the source tree
+     * 
+     * @return A MTD that clones the given one
+     */
+    MultiTerminalDisplay* getMtdClone(MultiTerminalDisplay* sourceMtd, ViewContainer* container);
+
 protected:
 
     /**
@@ -303,6 +340,16 @@ signals:
     void viewRemoved(TerminalDisplay* td);
 
 private:
+
+    /**
+     * Private implementation of the addTerminalDisplay method
+     */
+    void addTerminalDisplay(TerminalDisplay* terminalDisplay
+        , Session* session
+        , MultiTerminalDisplay* currentMultiTerminalDisplay
+        , Qt::Orientation orientation
+        , MultiTerminalDisplay* mtd1
+        , MultiTerminalDisplay* mtd2);
 
     /**
      * Puts together a MultiTerminalDisplay and its TerminalDisplay.

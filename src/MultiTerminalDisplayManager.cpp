@@ -38,6 +38,7 @@
 
 // Others
 #include <math.h>
+#include <stack>
 
 namespace Konsole
 {
@@ -161,6 +162,36 @@ MultiTerminalDisplay* MultiTerminalDisplayTree::getRootNode() const
     return _root;
 }
 
+MultiTerminalDisplay* MultiTerminalDisplayTree::traverseTreeAndYeldNodes(MultiTerminalDisplay* currentNode)
+{
+    static std::stack<MultiTerminalDisplay*> stack;
+    
+    if (currentNode && _leaves.contains(currentNode) == false) {
+        // Not a leaf, proceed with the children
+        stack.push(_parentToChildren[currentNode].first);
+        stack.push(_parentToChildren[currentNode].second);
+    }
+
+    // The next node to return
+    MultiTerminalDisplay* yeld = NULL;
+    
+    if (stack.size() > 0) {
+        yeld = stack.top();
+        stack.pop();
+    } else {
+        // After the stack is empty, this method will keep returning NULL
+        yeld = NULL;
+    }
+    
+    return yeld;
+}
+
+MultiTerminalDisplayTree::MtdTreeChildren MultiTerminalDisplayTree::getChildrenOf(MultiTerminalDisplay* node)
+{
+    return _parentToChildren[node];
+}
+
+
 // TODO: implement a stack of focused widgets for each tree
 //  * when a widget is removed, give focus to the one that had it before
 //  * when a different tab is selected, give the focus to the widget that had it
@@ -211,12 +242,22 @@ void MultiTerminalDisplayManager::addTerminalDisplay(TerminalDisplay* terminalDi
     , MultiTerminalDisplay* currentMultiTerminalDisplay
     , Qt::Orientation orientation)
 {
-    // Get the tree
-    MultiTerminalDisplayTree* mtdTree = _trees[currentMultiTerminalDisplay];
-
     // Create two new MTD, one for the existing TD and one for the new TD
     MultiTerminalDisplay* mtd1 = new MultiTerminalDisplay(currentMultiTerminalDisplay);
     MultiTerminalDisplay* mtd2 = new MultiTerminalDisplay(currentMultiTerminalDisplay);
+
+    addTerminalDisplay(terminalDisplay, session, currentMultiTerminalDisplay, orientation, mtd1, mtd2);
+}
+
+void MultiTerminalDisplayManager::addTerminalDisplay(TerminalDisplay* terminalDisplay
+    , Session* session
+    , MultiTerminalDisplay* currentMultiTerminalDisplay
+    , Qt::Orientation orientation
+    , MultiTerminalDisplay* mtd1
+    , MultiTerminalDisplay* mtd2)
+{
+    // Get the tree
+    MultiTerminalDisplayTree* mtdTree = _trees[currentMultiTerminalDisplay];
     mtdTree->insertNewNodes(currentMultiTerminalDisplay, mtd1, mtd2);
 
     _trees.insert(mtd1, mtdTree);
@@ -433,6 +474,47 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::getRootNode(MultiTerminalDisp
 {
     MultiTerminalDisplayTree* tree = _trees[mtd];
     return tree->getRootNode();
+}
+
+MultiTerminalDisplay* MultiTerminalDisplayManager::getMtdClone(MultiTerminalDisplay* sourceMtd, ViewContainer* container)
+{
+    MultiTerminalDisplayTree* sourceTree = _trees[sourceMtd];
+    QSet<MultiTerminalDisplay*> leaves = sourceTree->getLeaves();
+    MultiTerminalDisplay* originalRoot = sourceTree->getRootNode();
+    
+    if (leaves.contains(originalRoot)) {
+        // Tree contains a single node, the root which is also leaf
+        TerminalDisplay* td = _mtdContent[originalRoot];
+        MultiTerminalDisplay* newRoot = createRootTerminalDisplay(td, td->sessionController()->session(), container);
+        return newRoot;
+    }
+        
+    // Prepare an empty root. This is not a leaf, so it will never have a terminalDisplay and session
+    MultiTerminalDisplay* newRoot = createRootTerminalDisplay(NULL, NULL, container);
+    // This is the node that we are traversing in the original tree, a placeholder for traversing that tree and cloning it
+    MultiTerminalDisplay* nextNode = originalRoot;
+    QHash<MultiTerminalDisplay*, MultiTerminalDisplay*> originalToClonedNodes;
+    originalToClonedNodes.insert(originalRoot, newRoot);
+    while (nextNode != NULL) {
+        if (leaves.contains(nextNode)) {
+            // We are cloning a leaf node
+            combineMultiTerminalDisplayAndTerminalDisplay(originalToClonedNodes[nextNode], _mtdContent[nextNode]);
+        } else {
+            // This is not a leaf, must be split
+            MultiTerminalDisplay* clone1 = new MultiTerminalDisplay(originalToClonedNodes[nextNode]);
+            MultiTerminalDisplay* clone2 = new MultiTerminalDisplay(originalToClonedNodes[nextNode]);
+            // Split the node that corresponds to the current one we are traversing in the original tree
+            addTerminalDisplay(NULL, NULL, originalToClonedNodes[nextNode], nextNode->orientation(), clone1, clone2);
+            // Associate clones
+            MultiTerminalDisplayTree::MtdTreeChildren splits = sourceTree->getChildrenOf(nextNode);
+            originalToClonedNodes.insert(splits.first, clone1);
+            originalToClonedNodes.insert(splits.second, clone2);
+            // TODO: we should also replicate the size of clone1 and clone2 from the two MTDs they correspond to in the original tree
+        }
+        nextNode = sourceTree->traverseTreeAndYeldNodes(originalRoot);
+    }
+    
+    return newRoot;
 }
 
 void MultiTerminalDisplayManager::setFocusForContainer(MultiTerminalDisplay* widget)

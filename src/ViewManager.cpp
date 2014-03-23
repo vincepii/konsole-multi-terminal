@@ -408,6 +408,9 @@ void ViewManager::detachView(ViewContainer* container, QWidget* widgetView)
 
     QSet<TerminalDisplay*> tds = _mtdManager->getTerminalDisplaysOfContainer(viewToDetach);
     foreach (TerminalDisplay* td, tds) {
+        // Every time this signal is emitted, a new window with the given session is created
+        // see Application::detachView(Session* session)
+        // Also a new ViewManager will be created, how to clone the multi-terminals?
         emit viewDetached(_sessionMap[td]);
         _sessionMap.remove(td);
     }
@@ -501,6 +504,25 @@ void ViewManager::splitView(Qt::Orientation orientation)
     //       per un tab container significava tutte le tabs (1 tab per TerminalDisplay).
     //       Ora sono i TerminalDisplay in una singola tab.
     // foreach(QWidget* view,  getTerminalsFromContainer(_viewSplitter->activeContainer())) {
+    
+    
+    // For each view of the container (for each tab): _viewSplitter->activeContainer()->views()
+    // Get the tree of MTDs of that Tab
+    // Create a widget that contains all the subwidgets (the MTD tree) but uses the same terminal sessions
+    // Add this widget (i.e., tab) to the new container (created above)
+    
+    foreach (QWidget* view, _viewSplitter->activeContainer()->views()) {
+        MultiTerminalDisplay* mtd = qobject_cast<MultiTerminalDisplay*>(view);
+        if (!mtd) {
+            kError() << "Cannot cast container view to MultiTerminalDisplay";
+            return;
+        }
+
+        // TODO: is container right here?
+        MultiTerminalDisplay* cloneMtd = _mtdManager->getMtdClone(mtd, container);
+    }
+    
+    
     QList<QWidget*> terminals = getTerminalsFromContainer(_viewSplitter->activeContainer());
     foreach(QWidget* view, terminals) {
         // TODO: vincenzo: this will create a tab to clone each Multi Terminal
@@ -699,6 +721,8 @@ void ViewManager::createView(Session* session, ViewContainer* container, int ind
 
     TerminalDisplay* display = createTerminalDisplay(session);
 
+    // TODO: container here is the container of tabs, while what we want is the view of a single tab
+    // Maybe it is container->activeView(); ?
     MultiTerminalDisplay* multiTerminalDisplay = _mtdManager->createRootTerminalDisplay(display, session, container);
 
     const Profile::Ptr profile = SessionManager::instance()->sessionProfile(session);
