@@ -166,6 +166,13 @@ public:
      * Returns the search bar.
      */
     IncrementalSearchBar* searchBar() const;
+    
+    /**
+     * Creates a new terminal display and updates the internal status of the
+     * ViewManager.
+     * Wrapper around the createTerminalDisplay for external clients.
+     */
+    TerminalDisplay* createAndSetupTerminalDisplay(Session* session);
 
     /**
      * Session management

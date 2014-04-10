@@ -312,6 +312,8 @@ public:
     MultiTerminalDisplay* getRootNode(MultiTerminalDisplay* mtd) const;
 
     /**
+     * Clones a MTD and its hierarchy into the given container.
+     * 
      * Given a MTD, considers the MTDTree to which that belongs and recreate
      * a new MultiTerminalDisplay that has the same tree and the same terminal
      * sessions.
@@ -326,7 +328,7 @@ public:
      * 
      * @return A MTD that clones the given one
      */
-    MultiTerminalDisplay* getMtdClone(MultiTerminalDisplay* sourceMtd, ViewContainer* container);
+    MultiTerminalDisplay* cloneMtd(MultiTerminalDisplay* sourceMtd, ViewContainer* container);
 
 protected:
 

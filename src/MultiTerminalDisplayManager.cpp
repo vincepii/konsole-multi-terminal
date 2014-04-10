@@ -229,7 +229,9 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::createRootTerminalDisplay(Ter
     // We want to know when this object will get focus
     mtd->installEventFilter(this);
 
-    combineMultiTerminalDisplayAndTerminalDisplay(mtd, terminalDisplay);
+    if (terminalDisplay != NULL) {
+        combineMultiTerminalDisplayAndTerminalDisplay(mtd, terminalDisplay);
+    }
 
     // The initial split must contain only one child: the terminal display.
     container->hide();
@@ -266,11 +268,14 @@ void MultiTerminalDisplayManager::addTerminalDisplay(TerminalDisplay* terminalDi
     // Current TerminalDisplay
     TerminalDisplay* currentTd = _mtdContent[currentMultiTerminalDisplay];
     _mtdContent.remove(currentMultiTerminalDisplay);
-    combineMultiTerminalDisplayAndTerminalDisplay(mtd1, currentTd);
-    combineMultiTerminalDisplayAndTerminalDisplay(mtd2, terminalDisplay);
+    if (currentTd != NULL)
+        combineMultiTerminalDisplayAndTerminalDisplay(mtd1, currentTd);
+    if (terminalDisplay != NULL)
+        combineMultiTerminalDisplayAndTerminalDisplay(mtd2, terminalDisplay);
     splitMultiTerminalDisplay(currentMultiTerminalDisplay, mtd1, mtd2, orientation);
 
-    terminalDisplay->setFocus();
+    if (terminalDisplay != NULL)
+        terminalDisplay->setFocus();
 }
 
 MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTerminalDisplay* mtd)
@@ -453,7 +458,7 @@ void MultiTerminalDisplayManager::dismissMultiTerminals(MultiTerminalDisplay* mu
     QSet<MultiTerminalDisplay*> leaves = tree->getLeaves();
 
     while (leaves.size() > 0) {
-        MultiTerminalDisplay* newFocusedNode = removeTerminalDisplay(*leaves.begin());
+        removeTerminalDisplay(*leaves.begin());
         leaves = tree->getLeaves();
     }
 
@@ -476,7 +481,7 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::getRootNode(MultiTerminalDisp
     return tree->getRootNode();
 }
 
-MultiTerminalDisplay* MultiTerminalDisplayManager::getMtdClone(MultiTerminalDisplay* sourceMtd, ViewContainer* container)
+MultiTerminalDisplay* MultiTerminalDisplayManager::cloneMtd(MultiTerminalDisplay* sourceMtd, ViewContainer* container)
 {
     MultiTerminalDisplayTree* sourceTree = _trees[sourceMtd];
     QSet<MultiTerminalDisplay*> leaves = sourceTree->getLeaves();
@@ -484,8 +489,11 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::getMtdClone(MultiTerminalDisp
     
     if (leaves.contains(originalRoot)) {
         // Tree contains a single node, the root which is also leaf
-        TerminalDisplay* td = _mtdContent[originalRoot];
-        MultiTerminalDisplay* newRoot = createRootTerminalDisplay(td, td->sessionController()->session(), container);
+        Session* session = _mtdContent[originalRoot]->sessionController()->session();
+        TerminalDisplay* td = _viewManager->createAndSetupTerminalDisplay(session);
+        MultiTerminalDisplay* newRoot = createRootTerminalDisplay(td, session, container);
+        _mtdContent[newRoot] = td;
+        container->addView(newRoot, td->sessionController());
         return newRoot;
     }
         
@@ -495,10 +503,15 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::getMtdClone(MultiTerminalDisp
     MultiTerminalDisplay* nextNode = originalRoot;
     QHash<MultiTerminalDisplay*, MultiTerminalDisplay*> originalToClonedNodes;
     originalToClonedNodes.insert(originalRoot, newRoot);
+    TerminalDisplay* td = NULL;
     while (nextNode != NULL) {
         if (leaves.contains(nextNode)) {
             // We are cloning a leaf node
-            combineMultiTerminalDisplayAndTerminalDisplay(originalToClonedNodes[nextNode], _mtdContent[nextNode]);
+            Session* session = _mtdContent[nextNode]->sessionController()->session();
+            td = _viewManager->createAndSetupTerminalDisplay(session);
+            MultiTerminalDisplay* mtd = originalToClonedNodes[nextNode];
+            _mtdContent.insert(mtd, td);
+            combineMultiTerminalDisplayAndTerminalDisplay(mtd, td);
         } else {
             // This is not a leaf, must be split
             MultiTerminalDisplay* clone1 = new MultiTerminalDisplay(originalToClonedNodes[nextNode]);
@@ -511,9 +524,11 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::getMtdClone(MultiTerminalDisp
             originalToClonedNodes.insert(splits.second, clone2);
             // TODO: we should also replicate the size of clone1 and clone2 from the two MTDs they correspond to in the original tree
         }
-        nextNode = sourceTree->traverseTreeAndYeldNodes(originalRoot);
+        nextNode = sourceTree->traverseTreeAndYeldNodes(nextNode);
     }
     
+    // Take the ViewProperties from the last TerminalDisplay we used
+    container->addView(newRoot, td->sessionController());
     return newRoot;
 }
 

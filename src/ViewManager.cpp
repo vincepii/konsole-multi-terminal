@@ -280,11 +280,11 @@ void ViewManager::setupActions()
     goToRightMtdAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_Right));
     // Shortcut to move to the MTD below
     KAction* goToBottomMtdAction = 0;
-    goToTopMtdAction = collection->addAction("to-bottom-mtd", this, SLOT(moveToBottomMtd()));
-    goToTopMtdAction->setText(i18n("&Move to closest multi-terminal below"));
+    goToBottomMtdAction = collection->addAction("to-bottom-mtd", this, SLOT(moveToBottomMtd()));
+    goToBottomMtdAction->setText(i18n("&Move to closest multi-terminal below"));
     // TODO: icon?
-    goToTopMtdAction->setIcon(KIcon("edit-rename"));
-    goToTopMtdAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_Down));
+    goToBottomMtdAction->setIcon(KIcon("edit-rename"));
+    goToBottomMtdAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_Down));
     
     foreach(QAction* action, multiViewOnlyActions) {
         connect(this , SIGNAL(splitViewToggle(bool)) , action , SLOT(setEnabled(bool)));
@@ -518,30 +518,7 @@ void ViewManager::splitView(Qt::Orientation orientation)
             return;
         }
 
-        // TODO: is container right here?
-        MultiTerminalDisplay* cloneMtd = _mtdManager->getMtdClone(mtd, container);
-    }
-    
-    
-    QList<QWidget*> terminals = getTerminalsFromContainer(_viewSplitter->activeContainer());
-    foreach(QWidget* view, terminals) {
-        // TODO: vincenzo: this will create a tab to clone each Multi Terminal
-        // put the multiterminal of the same tab in the same split
-        Session* session = _sessionMap[qobject_cast<TerminalDisplay*>(view)];
-        TerminalDisplay* display = createTerminalDisplay(session);
-        MultiTerminalDisplay* mtd = _mtdManager->createRootTerminalDisplay(display, session, container);
-        // This element should not be already here, only one MTD per container
-//         Q_ASSERT(_multiTerminalsMap.find(container) == _multiTerminalsMap.end());
-//         _multiTerminalsMap[container] = multiTerminalDisplay;
-        if (session == NULL) {kDebug() << "session was null!"; return;}
-        const Profile::Ptr profile = SessionManager::instance()->sessionProfile(session);
-        applyProfileToView(display, profile);
-        ViewProperties* properties = createController(session, display);
-
-        _sessionMap[display] = session;
-
-        container->addView(mtd, properties);
-        session->addView(display);
+        _mtdManager->cloneMtd(mtd, container);
     }
 
     _viewSplitter->addContainer(container, orientation);
@@ -710,6 +687,19 @@ IncrementalSearchBar* ViewManager::searchBar() const
 {
     return _viewSplitter->activeSplitter()->activeContainer()->searchBar();
 }
+
+TerminalDisplay* ViewManager::createAndSetupTerminalDisplay(Session* session)
+{
+    if (session == NULL) {kDebug() << "session was null!"; return NULL;}
+    TerminalDisplay* td = createTerminalDisplay(session);
+    const Profile::Ptr profile = SessionManager::instance()->sessionProfile(session);
+    applyProfileToView(td, profile);
+    createController(session, td);
+    _sessionMap[td] = session;
+    session->addView(td);
+    return td;
+}
+
 
 void ViewManager::createView(Session* session, ViewContainer* container, int index)
 {
