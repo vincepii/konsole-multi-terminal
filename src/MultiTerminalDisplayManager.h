@@ -39,24 +39,8 @@ class ViewManager;
 typedef QSplitter MultiTerminalDisplay;
 
 // TODO: method to remove all MTDs (root included) to be called e.g. when a tab is closed
-// TODO: implementare "Close terminal" solo nel tasto destro, cosi` c-e` sempre la certezza di chi ha
-// il focus e non si rischia di chiudere un terminale a caso facendo disastri
-// TODO: tree in file separato
-
-/*
- * mappa int-tree* 
- * ogni volta che viene creato un nuovo albero, si genera un id e si aggiunge alla mappa
- * 
- * mappa mtd*-int
- * ogni mtd* e` associato all'indice dell'albero di cui fa parte
- * 
- * mappa int-set<mtd*> set delle foglie per un albero
- * 
- * Implementare class MTDTree
- * 
- * Decisione: c'e` un motivo per non avere direttamente mappa mtd*-tree*, dove ogni mtd e` associato al suo albero?
- * per il momento no, usare questa mappa
- */
+// TODO: implement "Close terminal" on the right click
+// TODO: implement the tree class in a different file
 
 /**
  * Properties of this tree:
@@ -82,8 +66,6 @@ public:
      * @param rootNode The root node, this will be both root and leaf
      */
     MultiTerminalDisplayTree(MultiTerminalDisplay* rootNode);
-
-    // TODO: cont: implementare classe prendendo funzioni necessarie dal manager
 
     /**
      * Returns all the leaves of this tree as a set
