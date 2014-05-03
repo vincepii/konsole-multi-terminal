@@ -89,7 +89,7 @@ public:
      * Creates a multi-terminal view.
      */
     void createMultiTerminalView(Qt::Orientation orientation);
-    
+
     /**
      * Applies the view-specific settings associated with specified @p profile
      * to the terminal display @p view.
@@ -166,7 +166,7 @@ public:
      * Returns the search bar.
      */
     IncrementalSearchBar* searchBar() const;
-    
+
     /**
      * Creates a new terminal display and updates the internal status of the
      * ViewManager.
@@ -216,23 +216,6 @@ signals:
      * if the active container is changed.
      */
     void viewPropertiesChanged(const QList<ViewProperties*>& propertiesList);
-
-    /**
-     * Emitted when the number of views containers changes.  This is used to disable or
-     * enable menu items which can only be used when there are one or multiple containers
-     * visible.
-     *
-     * @param multipleViews True if there are multiple view containers open or false if there is
-     * just a single view.
-     */
-    void splitViewToggle(bool multipleViews);
-
-    /**
-     * Emitted when there is more than one multi-terminal open.
-     * @param multiTerminals True if there is more than one multi-terminal open for the current
-     * view
-     */
-    void closeMultiTerminalToggle(bool multiTerminals);
 
     /**
      * Emitted when menu bar visibility changes because a profile that requires so is
@@ -296,14 +279,7 @@ public slots:
     Q_SCRIPTABLE void setTabWidthToText(bool);
 
 private slots:
-    // called when the "Split View Left/Right" menu item is selected
-    void splitLeftRight();
-    void splitTopBottom();
-    void closeActiveContainer();
-    void closeOtherContainers();
-    void expandActiveContainer();
-    void shrinkActiveContainer();
-    
+
     void multiTerminalHorizontal();
     void multiTerminalVertical();
     void multiTerminalClose();
@@ -312,7 +288,7 @@ private slots:
     void moveToTopMtd();
     void moveToRightMtd();
     void moveToBottomMtd();
-    
+
     // Moves the focus from the current widget to the closest one in the given direction
     void moveMtdFocus(MultiTerminalDisplayManager::Directions direction);
 
@@ -424,7 +400,7 @@ private:
 
     int _managerId;
     static int lastManagerId;
-    
+
     MultiTerminalDisplayManager* _mtdManager;
 };
 }

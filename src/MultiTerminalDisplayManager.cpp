@@ -165,7 +165,7 @@ MultiTerminalDisplay* MultiTerminalDisplayTree::getRootNode() const
 MultiTerminalDisplay* MultiTerminalDisplayTree::traverseTreeAndYeldNodes(MultiTerminalDisplay* currentNode)
 {
     static std::stack<MultiTerminalDisplay*> stack;
-    
+
     if (currentNode && _leaves.contains(currentNode) == false) {
         // Not a leaf, proceed with the children
         stack.push(_parentToChildren[currentNode].first);
@@ -174,7 +174,7 @@ MultiTerminalDisplay* MultiTerminalDisplayTree::traverseTreeAndYeldNodes(MultiTe
 
     // The next node to return
     MultiTerminalDisplay* yeld = NULL;
-    
+
     if (stack.size() > 0) {
         yeld = stack.top();
         stack.pop();
@@ -182,7 +182,7 @@ MultiTerminalDisplay* MultiTerminalDisplayTree::traverseTreeAndYeldNodes(MultiTe
         // After the stack is empty, this method will keep returning NULL
         yeld = NULL;
     }
-    
+
     return yeld;
 }
 
@@ -196,16 +196,9 @@ MultiTerminalDisplayTree::MtdTreeChildren MultiTerminalDisplayTree::getChildrenO
 //  * when a widget is removed, give focus to the one that had it before
 //  * when a different tab is selected, give the focus to the widget that had it
 
-MultiTerminalDisplayManager::MultiTerminalDisplayManager(ViewManager* viewManager
-    , QObject* parent /* = 0 */) :
-    QObject(parent),
-    _viewManager(viewManager),
-    UNSPECIFIED_DISTANCE(-1)
+MultiTerminalDisplayManager::MultiTerminalDisplayManager(ViewManager* viewManager, QObject* parent /* = 0 */) :
+    QObject(parent), _viewManager(viewManager), UNSPECIFIED_DISTANCE(-1)
 {
-    // TODO: connect a signal to the viewDestroyed slot, to finish clearing the sessions.
-    // also check the other connections of ViewManager::createContainer, as we might need them
-    // also put this code every time a mtd is created (helper method)
-   connect(this, SIGNAL(viewRemoved(QWidget*)), _viewManager, SLOT(viewDestroyed(QWidget*)));
 }
 
 MultiTerminalDisplayManager::~MultiTerminalDisplayManager()
@@ -283,7 +276,7 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::removeTerminalDisplay(MultiTe
     // Close the Terminal Display
     TerminalDisplay* removeTd = _mtdContent[mtd];
     removeTd->sessionController()->closeSession();
-    emit viewRemoved(removeTd);
+    emit destroyed(removeTd);
     _mtdContent.remove(mtd);
 
     // Adjust the tree
@@ -486,7 +479,7 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::cloneMtd(MultiTerminalDisplay
     MultiTerminalDisplayTree* sourceTree = _trees[sourceMtd];
     QSet<MultiTerminalDisplay*> leaves = sourceTree->getLeaves();
     MultiTerminalDisplay* originalRoot = sourceTree->getRootNode();
-    
+
     if (leaves.contains(originalRoot)) {
         // Tree contains a single node, the root which is also leaf
         Session* session = _mtdContent[originalRoot]->sessionController()->session();
@@ -496,7 +489,7 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::cloneMtd(MultiTerminalDisplay
         container->addView(newRoot, td->sessionController());
         return newRoot;
     }
-        
+
     // Prepare an empty root. This is not a leaf, so it will never have a terminalDisplay and session
     MultiTerminalDisplay* newRoot = createRootTerminalDisplay(NULL, NULL, container);
     // This is the node that we are traversing in the original tree, a placeholder for traversing that tree and cloning it
@@ -526,7 +519,7 @@ MultiTerminalDisplay* MultiTerminalDisplayManager::cloneMtd(MultiTerminalDisplay
         }
         nextNode = sourceTree->traverseTreeAndYeldNodes(nextNode);
     }
-    
+
     // Take the ViewProperties from the last TerminalDisplay we used
     container->addView(newRoot, td->sessionController());
     return newRoot;
@@ -573,7 +566,7 @@ void MultiTerminalDisplayManager::splitMultiTerminalDisplay(MultiTerminalDisplay
     QList<int> childSizes;
     childSizes.append(sizes.at(0) / 2);
     childSizes.append(sizes.at(0) / 2);
- 
+
     // Split
     container->setOrientation(orientation);
     container->addWidget(widget1);

@@ -48,7 +48,7 @@ typedef QSplitter MultiTerminalDisplay;
  * <li> Each node has only one parent
  * <li> Each node has zero or two children
  * </ul>
- * 
+ *
  * The tree doesn't keep ownership of the nodes it is made of, the data
  * structure is only used to keep the relationships between the nodes.
  */
@@ -62,7 +62,7 @@ public:
 
     /**
      * Constructor for a new tree.
-     * 
+     *
      * @param rootNode The root node, this will be both root and leaf
      */
     MultiTerminalDisplayTree(MultiTerminalDisplay* rootNode);
@@ -80,10 +80,10 @@ public:
 
     /**
      * Removes a leaf node from the tree and adjust the tree status.
-     * 
+     *
      * The current node is deleted from the tree and its sibling will replace
      * their parent.
-     * 
+     *
      * The algorithm is:
      * * the node that must be deleted (rnode) must be root, or error
      * * if we are removing the root node, we have no tree anymore!
@@ -91,14 +91,14 @@ public:
      *   just replace their parent
      * * basically: take rnode out and put the sibling and its subtree at the place
      *   of the parent
-     * 
+     *
      * If the node is root, it will just be removed.
      */
     void removeNode(MultiTerminalDisplay* node);
 
     /**
      * Returns the sibling of the given node.
-     * 
+     *
      * Unless the node is root, there is always a sibling
      */
     MultiTerminalDisplay* getSiblingOf(MultiTerminalDisplay* node);
@@ -128,22 +128,22 @@ public:
      * Returns the root node of this tree
      */
     MultiTerminalDisplay* getRootNode() const;
-    
+
     /**
      * Traverse the MultiTerminalDisplayTree and returns a pointer to the next
      * node.
      * The pointers are yelded as in python "yeld", each invocation of the method
      * yelds another pointer or NULL if all the tree has been traversed.
-     * 
+     *
      * Tree traversal is done with a stack and it is a depth first traversal.
-     * 
+     *
      * Note that after traversal has started and before it has completed (i.e.,
      * before the method has returned NULL), the method maintains
      * the internal state of the current traversal, so if a new traversal will
      * start at that point, the behavior will be undefined.
      */
     MultiTerminalDisplay* traverseTreeAndYeldNodes(MultiTerminalDisplay* currentNode);
-    
+
     /**
      * Returns the children of the given node in the tree
      */
@@ -166,13 +166,13 @@ private:
 
 /**
  * This is a manager of MultiTerminalDisplay objects.
- * 
+ *
  * MultiTerminalDisplay are splittable objects that can contain either zero
  * or two MultiTerminalDisplay.
- * 
+ *
  * This relationship is represented with a tree of MultiTerminalDisplay
  * objects.
- * 
+ *
  * <ul>
  * <li> The root MultiTerminalDisplay has a NULL parent.
  * <li> Each MultiTerminalDisplay is parent of either zero or two
@@ -208,18 +208,18 @@ public:
     MultiTerminalDisplay* createRootTerminalDisplay(TerminalDisplay* terminalDisplay
         , Session* session
         , ViewContainer* container);
-    
+
     /**
      * This method will promote the currentMultiTerminalDisplay from a leaf
      * to a node with two children.
-     * 
+     *
      * Two new MultiTerminalDisplay leaves will be prepared, one to host the
      * TerminalDisplay which belonged to the currentMultiTerminalDisplay and
      * another to host the new TerminalDisplay which must be added to the screen.
-     * 
+     *
      * The currentMultiTerminalDisplay will then become the parent of the new
      * two MultiTerminalDisplays.
-     * 
+     *
      * \param terminalDisplay The new TerminalDisplay to be added
      * \param session The session that controls the terminalDisplay
      * \param currentMultiTerminalDisplay The MultiTerminalDisplay that must be
@@ -234,7 +234,7 @@ public:
     /**
      * Removes the terminaldisplay contained in the given
      * leaf MultiTerminalDisplay
-     * 
+     *
      * @return The leaf MultiTerminalDisplay that contains the TerminalDisplay
      * that was previously contained in the sibling of the given mtd.
      */
@@ -259,7 +259,7 @@ public:
     /**
      * Given a leaf MultiTerminalDisplay, returns the TerminalDisplay which is
      * closest to that one in the specified direction.
-     * 
+     *
      * @return The closest TerminalDisplay to the given MultiTerminalDisplay in
      * the specified Direction
      */
@@ -275,7 +275,7 @@ public:
     /**
      * Properly shuts down all the terminals, deleting every node
      * of the tree to which the given multiTerminalDisplay belongs.
-     * 
+     *
      * @param multiTerminalDisplay any MultiTerminalDisplay belonging to
      * view that must be shutdown.
      */
@@ -295,11 +295,11 @@ public:
 
     /**
      * Clones a MTD and its hierarchy into the given container.
-     * 
+     *
      * Given a MTD, considers the MTDTree to which that belongs and recreate
      * a new MultiTerminalDisplay that has the same tree and the same terminal
      * sessions.
-     * 
+     *
      * The logic of the method is as follows:
      * * We traverse the original source tree (the one to be cloned) and keep a pointer
      *   to each one of its nodes
@@ -307,7 +307,7 @@ public:
      *   node that corresponds to the current one in the source tree
      * * If the node is a leaf, we add to it the terminalDisplay of the node to which
      *   that corresponds in the source tree
-     * 
+     *
      * @return A MTD that clones the given one
      */
     MultiTerminalDisplay* cloneMtd(MultiTerminalDisplay* sourceMtd, ViewContainer* container);
@@ -337,7 +337,7 @@ private:
 
     /**
      * Puts together a MultiTerminalDisplay and its TerminalDisplay.
-     * 
+     *
      * Helper method.
      */
     void combineMultiTerminalDisplayAndTerminalDisplay(MultiTerminalDisplay* mtd, TerminalDisplay* td);
@@ -375,7 +375,7 @@ private:
     /**
      * For each MultiTerminalDisplay, tells what is the contained
      * TerminalDisplay.
-     * 
+     *
      * Only leave nodes can contain a TerminalDisplay, thus only leaf
      * nodes are key to this Hash.
      */
