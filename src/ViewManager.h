@@ -217,6 +217,23 @@ signals:
      */
     void viewPropertiesChanged(const QList<ViewProperties*>& propertiesList);
 
+   /**
+     * Emitted when the number of views containers changes.  This is used to disable or
+     * enable menu items which can only be used when there are one or multiple containers
+     * visible.
+     *
+     * @param multipleViews True if there are multiple view containers open or false if there is
+     * just a single view.
+     */
+    void splitViewToggle(bool multipleViews);
+
+    /**
+     * Emitted when there is more than one multi-terminal open.
+     * @param multiTerminals True if there is more than one multi-terminal open for the current
+     * view
+     */
+    void closeMultiTerminalToggle(bool multiTerminals);
+
     /**
      * Emitted when menu bar visibility changes because a profile that requires so is
      * activated.
@@ -279,6 +296,13 @@ public slots:
     Q_SCRIPTABLE void setTabWidthToText(bool);
 
 private slots:
+    // called when the "Split View Left/Right" menu item is selected
+    void splitLeftRight();
+    void splitTopBottom();
+    void closeActiveContainer();
+    void closeOtherContainers();
+    void expandActiveContainer();
+    void shrinkActiveContainer();
 
     void multiTerminalHorizontal();
     void multiTerminalVertical();
